@@ -1,14 +1,21 @@
-use std::time::Duration;
-
-use actix_web::{App, HttpServer};
+use actix_web::{web::Data, App, HttpServer};
+use exun::RawUnexpected;
 
 mod api;
+mod services;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
-	HttpServer::new(|| App::new().service(api::liveops()))
-		.shutdown_timeout(1)
-		.bind(("127.0.0.1", 8080))?
-		.run()
-		.await
+async fn main() -> Result<(), RawUnexpected> {
+	let sql_pool = services::db::initialize("password_database", "dbuser", "Demo1234").await?;
+	HttpServer::new(move || {
+		App::new()
+			.app_data(Data::new(sql_pool.clone()))
+			.service(api::liveops())
+	})
+	.shutdown_timeout(1)
+	.bind(("127.0.0.1", 8080))?
+	.run()
+	.await?;
+
+	Ok(())
 }

@@ -1,8 +1,8 @@
-use actix_web::{get, web, Scope};
+use actix_web::{get, web, HttpResponse, Scope};
 
 #[get("ping")]
-async fn ping() -> &'static str {
-	"pong"
+async fn ping() -> HttpResponse {
+	HttpResponse::Ok().finish()
 }
 
 pub fn service() -> Scope {
