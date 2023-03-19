@@ -7,5 +7,5 @@ async fn ping() -> HttpResponse {
 }
 
 pub fn service() -> Scope {
-	web::scope("liveops/").service(ping)
+	web::scope("liveops").service(ping)
 }

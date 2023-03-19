@@ -1113,6 +1113,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "raise"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5127de0ecc0dd007559117b06737ec010d7316513685c2d3adf2b8b8252ce589"
+
+[[package]]
 name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1221,9 +1227,13 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "exun",
+ "raise",
  "rand",
  "rust-argon2",
+ "serde",
  "sqlx",
+ "thiserror",
+ "uuid",
 ]
 
 [[package]]
@@ -1741,6 +1751,11 @@ name = "uuid"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1674845326ee10d37ca60470760d4288a6f80f304007d92e5c53bab78c9cfd79"
+dependencies = [
+ "getrandom",
+ "rand",
+ "serde",
+]
 
 [[package]]
 name = "version_check"

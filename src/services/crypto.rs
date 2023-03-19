@@ -10,7 +10,7 @@ static PEPPER: [u8; 16] = [
 
 /// The configuration used for hashing and verifying passwords
 static CONFIG: argon2::Config<'_> = argon2::Config {
-	hash_length: 256,
+	hash_length: 32,
 	lanes: 4,
 	mem_cost: 5333,
 	time_cost: 4,
@@ -27,13 +27,12 @@ static CONFIG: argon2::Config<'_> = argon2::Config {
 pub struct PasswordHash {
 	hash: Box<[u8]>,
 	salt: Box<[u8]>,
+	version: u8,
 }
 
 impl Hash for PasswordHash {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-		for byte in self.hash.iter() {
-			state.write_u8(*byte)
-		}
+		state.write(&self.hash)
 	}
 }
 
@@ -47,14 +46,19 @@ impl PasswordHash {
 
 		let hash = hash_raw(password, &salt, &CONFIG)?.into_boxed_slice();
 
-		Ok(Self { hash, salt })
+		Ok(Self {
+			hash,
+			salt,
+			version: 0,
+		})
 	}
 
 	/// Create this structure from a given hash and salt
-	pub fn from_hash_salt(hash: &[u8], salt: &[u8]) -> Self {
+	pub fn from_fields(hash: &[u8], salt: &[u8], version: u8) -> Self {
 		Self {
 			hash: Box::from(hash),
 			salt: Box::from(salt),
+			version,
 		}
 	}
 
@@ -66,6 +70,10 @@ impl PasswordHash {
 	/// Get the salt used for the hash
 	pub fn salt(&self) -> &[u8] {
 		&self.salt
+	}
+
+	pub fn version(&self) -> u8 {
+		self.version
 	}
 
 	/// Check if the given password is the one that was hashed

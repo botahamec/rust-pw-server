@@ -7,7 +7,11 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4"
+serde = "1"
+thiserror = "1"
 rust-argon2 = "1"
-rand = { version = "0.8", features = [ "small_rng" ] }
+uuid = { version = "1", features = [ "v4", "fast-rng", "serde" ] }
+raise = "2"
+rand = "0.8"
 sqlx = { version = "0.6", features = [ "runtime-actix-rustls", "mysql", "uuid", "offline" ] }
 exun = "0.1"

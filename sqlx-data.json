@@ -1,3 +1,88 @@
 {
-  "db": "MySQL"
+  "db": "MySQL",
+  "1f6464fd7ab12c16c6b3d003471fc316d5aca3ec33e6cd2ebfc73a45a50f5d09": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT user_id FROM users WHERE email = ?) as \"e: bool\""
+  },
+  "2a874f8bf5448493f2724b31022f3f8ebb535de0d780c19bb11e70d0da3e12fb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT user_id FROM users WHERE username = ?) as \"e: bool\""
+  },
+  "e7915f4cc41910baa074655a175f10bec198b69c4a4876cface46c875a1985c8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "INSERT INTO users (user_id, username, email, password_hash, password_salt, password_version)\n\t\t\t\t\t VALUES (?,       ?,        ?,     ?,             ?,             ?)"
+  },
+  "ef52d73fde91d8771b14607544be1c12985e7db6c902062a2addd3b367502745": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT user_id FROM users WHERE user_id = ?) as \"e: bool\""
+  }
 }
