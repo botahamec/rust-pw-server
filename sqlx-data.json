@@ -1,5 +1,82 @@
 {
   "db": "MySQL",
+  "016610abc2d730ab748db57c97ea3d7c2cc38d1f3dbc7dfef86742454d4b15f1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_salt",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_version",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 33
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE user_id = ?"
+  },
   "0e1cd93286d20bbaa3e25dbec43b5e28cfbe6506d2d47432259e228f7f92c867": {
     "describe": {
       "columns": [
@@ -79,6 +156,83 @@
       }
     },
     "query": "UPDATE users SET\n\t\tpassword_hash = ?,\n\t\tpassword_salt = ?,\n\t\tpassword_version = ?\n\t\tWHERE user_id = ?"
+  },
+  "e87cb729ff241fce8e1ddcd43519105910b61184b1ed755a437bd511eac4f9cf": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_salt",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_version",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 33
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE username = ?"
   },
   "ed4a40d7a9417985e6552d368146f5791717a41c16921f5074dfa14b637a9209": {
     "describe": {

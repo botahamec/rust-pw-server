@@ -33,9 +33,8 @@ impl TryFrom<UserRow> for User {
 }
 
 /// Intialize the connection pool
-pub async fn initialize(db: &str, user: &str, password: &str) -> Result<MySqlPool, RawUnexpected> {
-	let url = format!("mysql://{user}:{password}@localhost/{db}");
-	MySqlPool::connect(&url).await.unexpect()
+pub async fn initialize(db_url: &str) -> Result<MySqlPool, RawUnexpected> {
+	MySqlPool::connect(db_url).await.unexpect()
 }
 
 pub async fn user_id_exists<'c>(

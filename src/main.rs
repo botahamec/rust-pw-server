@@ -9,7 +9,8 @@ use services::*;
 
 #[actix_web::main]
 async fn main() -> Result<(), RawUnexpected> {
-	let sql_pool = db::initialize("password_database", "dbuser", "Demo1234").await?;
+	let db_url = secrets::database_url()?;
+	let sql_pool = db::initialize(&db_url).await?;
 
 	HttpServer::new(move || {
 		App::new()
