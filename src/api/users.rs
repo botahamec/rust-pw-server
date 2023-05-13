@@ -23,6 +23,41 @@ impl From<User> for UserResponse {
 	}
 }
 
+#[get("/")]
+async fn search_users(
+	web::Query(username): web::Query<Option<Box<str>>>,
+	web::Query(limit): web::Query<Option<u32>>,
+	web::Query(offset): web::Query<Option<u32>>,
+	conn: web::Data<MySqlPool>,
+) -> HttpResponse {
+	let conn = conn.get_ref();
+
+	let username = username.unwrap_or_default();
+	let offset = offset.unwrap_or_default();
+
+	let results: Box<[UserResponse]> = if let Some(limit) = limit {
+		db::search_users_limit(conn, &username, offset, limit)
+			.await
+			.unwrap()
+			.iter()
+			.cloned()
+			.map(|u| u.into())
+			.collect()
+	} else {
+		db::search_users(conn, &username)
+			.await
+			.unwrap()
+			.into_iter()
+			.skip(offset as usize)
+			.cloned()
+			.map(|u| u.into())
+			.collect()
+	};
+
+	let response = HttpResponse::Ok().json(results);
+	response
+}
+
 #[derive(Debug, Clone, Error)]
 #[error("No user with the given ID exists")]
 struct UserNotFoundError {
@@ -224,6 +259,7 @@ async fn update_password(
 
 pub fn service() -> Scope {
 	web::scope("/users")
+		.service(search_users)
 		.service(get_user)
 		.service(get_username)
 		.service(create_user)

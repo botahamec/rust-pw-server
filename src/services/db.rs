@@ -101,6 +101,54 @@ pub async fn get_user_by_username<'c>(
 	Ok(Some(record.try_into()?))
 }
 
+pub async fn search_users<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	username: &str,
+) -> Result<Box<[User]>, RawUnexpected> {
+	let username = format!("%{username}%");
+	let records = query_as!(
+		UserRow,
+		r"SELECT user_id, username, password_hash, password_salt, password_version
+		  FROM users
+		  WHERE LOCATE(?, username) != 0",
+		username,
+	)
+	.fetch_all(conn)
+	.await?;
+
+	Ok(records
+		.into_iter()
+		.map(|u| u.try_into())
+		.collect::<Result<Box<[User]>, RawUnexpected>>()?)
+}
+
+pub async fn search_users_limit<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	username: &str,
+	offset: u32,
+	limit: u32,
+) -> Result<Box<[User]>, RawUnexpected> {
+	let username = format!("%{username}%");
+	let records = query_as!(
+		UserRow,
+		r"SELECT user_id, username, password_hash, password_salt, password_version
+		  FROM users
+		  WHERE LOCATE(?, username) != 0
+		  LIMIT ?
+		  OFFSET ?",
+		username,
+		offset,
+		limit
+	)
+	.fetch_all(conn)
+	.await?;
+
+	Ok(records
+		.into_iter()
+		.map(|u| u.try_into())
+		.collect::<Result<Box<[User]>, RawUnexpected>>()?)
+}
+
 pub async fn get_username<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,

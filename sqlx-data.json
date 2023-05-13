@@ -127,6 +127,160 @@
     },
     "query": "SELECT EXISTS(SELECT user_id FROM users WHERE username = ?) as \"e: bool\""
   },
+  "370adb0e591634e2bc2e0cd904881f79192869a250eb6e1ba02e5074544a58cf": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_salt",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_version",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 33
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0\n\t\t  LIMIT ?\n\t\t  OFFSET ?"
+  },
+  "65b0c5cb580ec3b8867ba7733cda3fddb665e1a5581911d8f0d4c64891871521": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_salt",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_version",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 33
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0"
+  },
   "75241e6a872d943242a56e45e1ea9338caff4863a81c2fc6a2f02e6fa2762e29": {
     "describe": {
       "columns": [],
