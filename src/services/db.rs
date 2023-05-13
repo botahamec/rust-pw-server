@@ -1,5 +1,5 @@
 use exun::*;
-use sqlx::{query, query_scalar, Executor, MySql, MySqlPool};
+use sqlx::{mysql::MySqlQueryResult, query, query_scalar, Executor, MySql, MySqlPool};
 use uuid::Uuid;
 
 use crate::models::User;
@@ -38,10 +38,21 @@ pub async fn username_is_used<'c>(
 	Ok(exists)
 }
 
+pub async fn get_username<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	user_id: Uuid,
+) -> Result<Option<String>, RawUnexpected> {
+	let username = query_scalar!(r"SELECT username FROM users where user_id = ?", user_id)
+		.fetch_optional(conn)
+		.await?;
+
+	Ok(username)
+}
+
 pub async fn new_user<'c>(
 	conn: impl Executor<'c, Database = MySql>,
-	user: User,
-) -> Result<sqlx::mysql::MySqlQueryResult, sqlx::Error> {
+	user: &User,
+) -> Result<MySqlQueryResult, sqlx::Error> {
 	query!(
 		r"INSERT INTO users (user_id, username, password_hash, password_salt, password_version)
 					 VALUES (?,       ?,        ?,             ?,             ?)",
@@ -50,6 +61,27 @@ pub async fn new_user<'c>(
 		user.password_hash(),
 		user.password_salt(),
 		user.password_version()
+	)
+	.execute(conn)
+	.await
+}
+
+pub async fn update_username<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	user: &User,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+	query!(
+		r"UPDATE users SET
+		  username = ?,
+		  password_hash = ?,
+		  password_salt = ?,
+		  password_version = ?
+		  WHERE user_id = ?",
+		user.username(),
+		user.password_hash(),
+		user.password_salt(),
+		user.password_version(),
+		user.user_id
 	)
 	.execute(conn)
 	.await
