@@ -1,5 +1,6 @@
 use actix_web::http::{header, StatusCode};
 use actix_web::{post, put, web, HttpResponse, ResponseError, Scope};
+use exun::RawUnexpected;
 use raise::yeet;
 use serde::Deserialize;
 use sqlx::MySqlPool;
@@ -69,11 +70,7 @@ async fn update_user(
 	let username = body.username.clone();
 	let password = PasswordHash::new(&body.password).unwrap();
 
-	let old_username = db::get_username(conn, user_id)
-		.await
-		.unwrap()
-		.unwrap()
-		.into_boxed_str();
+	let old_username = db::get_username(conn, user_id).await.unwrap().unwrap();
 	if username != old_username && db::username_is_used(conn, &body.username).await.unwrap() {
 		yeet!(UsernameTakenError { username })
 	}
@@ -84,13 +81,58 @@ async fn update_user(
 		password,
 	};
 
-	db::update_username(conn, &user).await.unwrap();
+	db::update_user(conn, &user).await.unwrap();
 
 	let response = HttpResponse::NoContent()
 		.insert_header((header::LOCATION, format!("users/{user_id}")))
 		.finish();
 
 	Ok(response)
+}
+
+#[put("/{user_id}/username")]
+async fn update_username(
+	user_id: web::Path<Uuid>,
+	body: web::Json<Box<str>>,
+	conn: web::Data<MySqlPool>,
+) -> Result<HttpResponse, UsernameTakenError> {
+	let conn = conn.get_ref();
+
+	let user_id = user_id.to_owned();
+	let username = body.clone();
+
+	let old_username = db::get_username(conn, user_id).await.unwrap().unwrap();
+	if username != old_username && db::username_is_used(conn, &body).await.unwrap() {
+		yeet!(UsernameTakenError { username })
+	}
+
+	db::update_username(conn, user_id, &body).await.unwrap();
+
+	let response = HttpResponse::NoContent()
+		.insert_header((header::LOCATION, format!("users/{user_id}/username")))
+		.finish();
+
+	Ok(response)
+}
+
+#[put("/{user_id}/password")]
+async fn update_password(
+	user_id: web::Path<Uuid>,
+	body: web::Json<Box<str>>,
+	conn: web::Data<MySqlPool>,
+) -> HttpResponse {
+	let conn = conn.get_ref();
+
+	let user_id = user_id.to_owned();
+	let password = PasswordHash::new(&body).unwrap();
+
+	db::update_password(conn, user_id, &password).await.unwrap();
+
+	let response = HttpResponse::NoContent()
+		.insert_header((header::LOCATION, format!("users/{user_id}/password")))
+		.finish();
+
+	response
 }
 
 pub fn service() -> Scope {

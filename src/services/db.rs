@@ -4,6 +4,8 @@ use uuid::Uuid;
 
 use crate::models::User;
 
+use super::crypto::PasswordHash;
+
 /// Intialize the connection pool
 pub async fn initialize(db: &str, user: &str, password: &str) -> Result<MySqlPool, RawUnexpected> {
 	let url = format!("mysql://{user}:{password}@localhost/{db}");
@@ -41,10 +43,11 @@ pub async fn username_is_used<'c>(
 pub async fn get_username<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,
-) -> Result<Option<String>, RawUnexpected> {
+) -> Result<Option<Box<str>>, RawUnexpected> {
 	let username = query_scalar!(r"SELECT username FROM users where user_id = ?", user_id)
 		.fetch_optional(conn)
-		.await?;
+		.await?
+		.map(String::into_boxed_str);
 
 	Ok(username)
 }
@@ -66,7 +69,7 @@ pub async fn new_user<'c>(
 	.await
 }
 
-pub async fn update_username<'c>(
+pub async fn update_user<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user: &User,
 ) -> Result<MySqlQueryResult, sqlx::Error> {
@@ -82,6 +85,40 @@ pub async fn update_username<'c>(
 		user.password_salt(),
 		user.password_version(),
 		user.user_id
+	)
+	.execute(conn)
+	.await
+}
+
+pub async fn update_username<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	user_id: Uuid,
+	username: &str,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+	query!(
+		r"UPDATE users SET username = ? WHERE user_id = ?",
+		username,
+		user_id
+	)
+	.execute(conn)
+	.await
+}
+
+pub async fn update_password<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	user_id: Uuid,
+	password: &PasswordHash,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+	query!(
+		r"UPDATE users SET
+		password_hash = ?,
+		password_salt = ?,
+		password_version = ?
+		WHERE user_id = ?",
+		password.hash(),
+		password.salt(),
+		password.version(),
+		user_id
 	)
 	.execute(conn)
 	.await
