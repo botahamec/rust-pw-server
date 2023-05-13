@@ -1,10 +1,36 @@
 use exun::*;
-use sqlx::{mysql::MySqlQueryResult, query, query_scalar, Executor, MySql, MySqlPool};
+use sqlx::{mysql::MySqlQueryResult, query, query_as, query_scalar, Executor, MySql, MySqlPool};
 use uuid::Uuid;
 
 use crate::models::User;
 
 use super::crypto::PasswordHash;
+
+struct UserRow {
+	user_id: Vec<u8>,
+	username: String,
+	password_hash: Vec<u8>,
+	password_salt: Vec<u8>,
+	password_version: u32,
+}
+
+impl TryFrom<UserRow> for User {
+	type Error = RawUnexpected;
+
+	fn try_from(row: UserRow) -> Result<Self, Self::Error> {
+		let password = PasswordHash::from_fields(
+			&row.password_hash,
+			&row.password_salt,
+			row.password_version as u8,
+		);
+		let user = User {
+			user_id: Uuid::from_slice(&row.user_id)?,
+			username: row.username.into_boxed_str(),
+			password,
+		};
+		Ok(user)
+	}
+}
 
 /// Intialize the connection pool
 pub async fn initialize(db: &str, user: &str, password: &str) -> Result<MySqlPool, RawUnexpected> {
@@ -38,6 +64,24 @@ pub async fn username_is_used<'c>(
 	.await?;
 
 	Ok(exists)
+}
+
+pub async fn get_user<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	user_id: Uuid,
+) -> Result<Option<User>, RawUnexpected> {
+	let record = query_as!(
+		UserRow,
+		r"SELECT user_id, username, password_hash, password_salt, password_version
+		  FROM users WHERE user_id = ?",
+		user_id
+	)
+	.fetch_optional(conn)
+	.await?;
+
+	let Some(record) = record else { return Ok(None) };
+
+	Ok(Some(record.try_into()?))
 }
 
 pub async fn get_username<'c>(

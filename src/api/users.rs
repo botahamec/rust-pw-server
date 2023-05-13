@@ -1,7 +1,7 @@
 use actix_web::http::{header, StatusCode};
-use actix_web::{post, put, web, HttpResponse, ResponseError, Scope};
+use actix_web::{get, post, put, web, HttpResponse, ResponseError, Scope};
 use raise::yeet;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use thiserror::Error;
 use uuid::Uuid;
@@ -10,13 +10,75 @@ use crate::models::User;
 use crate::services::crypto::PasswordHash;
 use crate::services::{db, id};
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+struct UserResponse {
+	username: Box<str>,
+}
+
+impl From<User> for UserResponse {
+	fn from(user: User) -> Self {
+		Self {
+			username: user.username,
+		}
+	}
+}
+
+#[derive(Debug, Clone, Error)]
+#[error("No user with the given ID exists")]
+struct UserNotFoundError {
+	user_id: Uuid,
+}
+
+impl ResponseError for UserNotFoundError {
+	fn status_code(&self) -> StatusCode {
+		StatusCode::NOT_FOUND
+	}
+}
+
+#[get("/{user_id}")]
+async fn get_user(
+	user_id: web::Path<Uuid>,
+	conn: web::Data<MySqlPool>,
+) -> Result<HttpResponse, UserNotFoundError> {
+	let conn = conn.get_ref();
+
+	let user_id = user_id.to_owned();
+	let user = db::get_user(conn, user_id).await.unwrap();
+
+	let Some(user) = user else {
+		yeet!(UserNotFoundError {user_id});
+	};
+
+	let response: UserResponse = user.into();
+	let response = HttpResponse::Ok().json(response);
+	Ok(response)
+}
+
+#[get("/{user_id}/username")]
+async fn get_username(
+	user_id: web::Path<Uuid>,
+	conn: web::Data<MySqlPool>,
+) -> Result<HttpResponse, UserNotFoundError> {
+	let conn = conn.get_ref();
+
+	let user_id = user_id.to_owned();
+	let username = db::get_username(conn, user_id).await.unwrap();
+
+	let Some(username) = username else {
+		yeet!(UserNotFoundError { user_id });
+	};
+
+	let response = HttpResponse::Ok().json(username);
+	Ok(response)
+}
+
+#[derive(Debug, Clone, Deserialize)]
 struct UserRequest {
 	username: Box<str>,
 	password: Box<str>,
 }
 
-#[derive(Debug, Clone, Hash, Error)]
+#[derive(Debug, Clone, Error)]
 #[error("An account with the given username already exists.")]
 struct UsernameTakenError {
 	username: Box<str>,
@@ -57,12 +119,29 @@ async fn create_user(
 	Ok(response)
 }
 
+#[derive(Debug, Clone, Error)]
+enum UpdateUserError {
+	#[error(transparent)]
+	UsernameTaken(#[from] UsernameTakenError),
+	#[error(transparent)]
+	NotFound(#[from] UserNotFoundError),
+}
+
+impl ResponseError for UpdateUserError {
+	fn status_code(&self) -> StatusCode {
+		match self {
+			Self::UsernameTaken(..) => StatusCode::CONFLICT,
+			Self::NotFound(..) => StatusCode::NOT_FOUND,
+		}
+	}
+}
+
 #[put("/{user_id}")]
 async fn update_user(
 	user_id: web::Path<Uuid>,
 	body: web::Json<UserRequest>,
 	conn: web::Data<MySqlPool>,
-) -> Result<HttpResponse, UsernameTakenError> {
+) -> Result<HttpResponse, UpdateUserError> {
 	let conn = conn.get_ref();
 
 	let user_id = user_id.to_owned();
@@ -71,7 +150,11 @@ async fn update_user(
 
 	let old_username = db::get_username(conn, user_id).await.unwrap().unwrap();
 	if username != old_username && db::username_is_used(conn, &body.username).await.unwrap() {
-		yeet!(UsernameTakenError { username })
+		yeet!(UsernameTakenError { username }.into())
+	}
+
+	if !db::user_id_exists(conn, user_id).await.unwrap() {
+		yeet!(UserNotFoundError { user_id }.into())
 	}
 
 	let user = User {
@@ -94,7 +177,7 @@ async fn update_username(
 	user_id: web::Path<Uuid>,
 	body: web::Json<Box<str>>,
 	conn: web::Data<MySqlPool>,
-) -> Result<HttpResponse, UsernameTakenError> {
+) -> Result<HttpResponse, UpdateUserError> {
 	let conn = conn.get_ref();
 
 	let user_id = user_id.to_owned();
@@ -102,7 +185,11 @@ async fn update_username(
 
 	let old_username = db::get_username(conn, user_id).await.unwrap().unwrap();
 	if username != old_username && db::username_is_used(conn, &body).await.unwrap() {
-		yeet!(UsernameTakenError { username })
+		yeet!(UsernameTakenError { username }.into())
+	}
+
+	if !db::user_id_exists(conn, user_id).await.unwrap() {
+		yeet!(UserNotFoundError { user_id }.into())
 	}
 
 	db::update_username(conn, user_id, &body).await.unwrap();
@@ -119,23 +206,26 @@ async fn update_password(
 	user_id: web::Path<Uuid>,
 	body: web::Json<Box<str>>,
 	conn: web::Data<MySqlPool>,
-) -> HttpResponse {
+) -> Result<HttpResponse, UserNotFoundError> {
 	let conn = conn.get_ref();
 
 	let user_id = user_id.to_owned();
 	let password = PasswordHash::new(&body).unwrap();
 
+	if !db::user_id_exists(conn, user_id).await.unwrap() {
+		yeet!(UserNotFoundError { user_id })
+	}
+
 	db::update_password(conn, user_id, &password).await.unwrap();
 
-	let response = HttpResponse::NoContent()
-		.insert_header((header::LOCATION, format!("users/{user_id}/password")))
-		.finish();
-
-	response
+	let response = HttpResponse::NoContent().finish();
+	Ok(response)
 }
 
 pub fn service() -> Scope {
 	web::scope("/users")
+		.service(get_user)
+		.service(get_username)
 		.service(create_user)
 		.service(update_user)
 		.service(update_username)
