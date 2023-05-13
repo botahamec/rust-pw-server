@@ -105,7 +105,6 @@ pub async fn search_users<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	username: &str,
 ) -> Result<Box<[User]>, RawUnexpected> {
-	let username = format!("%{username}%");
 	let records = query_as!(
 		UserRow,
 		r"SELECT id, username, password_hash, password_salt, password_version
@@ -128,7 +127,6 @@ pub async fn search_users_limit<'c>(
 	offset: u32,
 	limit: u32,
 ) -> Result<Box<[User]>, RawUnexpected> {
-	let username = format!("%{username}%");
 	let records = query_as!(
 		UserRow,
 		r"SELECT id, username, password_hash, password_salt, password_version
