@@ -1,6 +1,5 @@
 use actix_web::http::{header, StatusCode};
 use actix_web::{post, put, web, HttpResponse, ResponseError, Scope};
-use exun::RawUnexpected;
 use raise::yeet;
 use serde::Deserialize;
 use sqlx::MySqlPool;
@@ -139,4 +138,6 @@ pub fn service() -> Scope {
 	web::scope("/users")
 		.service(create_user)
 		.service(update_user)
+		.service(update_username)
+		.service(update_password)
 }
