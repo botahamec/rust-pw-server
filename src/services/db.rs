@@ -7,7 +7,7 @@ use crate::models::User;
 use super::crypto::PasswordHash;
 
 struct UserRow {
-	user_id: Vec<u8>,
+	id: Vec<u8>,
 	username: String,
 	password_hash: Vec<u8>,
 	password_salt: Vec<u8>,
@@ -24,7 +24,7 @@ impl TryFrom<UserRow> for User {
 			row.password_version as u8,
 		);
 		let user = User {
-			user_id: Uuid::from_slice(&row.user_id)?,
+			id: Uuid::from_slice(&row.id)?,
 			username: row.username.into_boxed_str(),
 			password,
 		};
@@ -42,7 +42,7 @@ pub async fn user_id_exists<'c>(
 	id: Uuid,
 ) -> Result<bool, RawUnexpected> {
 	let exists = query_scalar!(
-		r#"SELECT EXISTS(SELECT user_id FROM users WHERE user_id = ?) as "e: bool""#,
+		r#"SELECT EXISTS(SELECT id FROM users WHERE id = ?) as "e: bool""#,
 		id
 	)
 	.fetch_one(conn)
@@ -56,7 +56,7 @@ pub async fn username_is_used<'c>(
 	username: &str,
 ) -> Result<bool, RawUnexpected> {
 	let exists = query_scalar!(
-		r#"SELECT EXISTS(SELECT user_id FROM users WHERE username = ?) as "e: bool""#,
+		r#"SELECT EXISTS(SELECT id FROM users WHERE username = ?) as "e: bool""#,
 		username
 	)
 	.fetch_one(conn)
@@ -71,8 +71,8 @@ pub async fn get_user<'c>(
 ) -> Result<Option<User>, RawUnexpected> {
 	let record = query_as!(
 		UserRow,
-		r"SELECT user_id, username, password_hash, password_salt, password_version
-		  FROM users WHERE user_id = ?",
+		r"SELECT id, username, password_hash, password_salt, password_version
+		  FROM users WHERE id = ?",
 		user_id
 	)
 	.fetch_optional(conn)
@@ -89,7 +89,7 @@ pub async fn get_user_by_username<'c>(
 ) -> Result<Option<User>, RawUnexpected> {
 	let record = query_as!(
 		UserRow,
-		r"SELECT user_id, username, password_hash, password_salt, password_version
+		r"SELECT id, username, password_hash, password_salt, password_version
 		  FROM users WHERE username = ?",
 		username
 	)
@@ -108,7 +108,7 @@ pub async fn search_users<'c>(
 	let username = format!("%{username}%");
 	let records = query_as!(
 		UserRow,
-		r"SELECT user_id, username, password_hash, password_salt, password_version
+		r"SELECT id, username, password_hash, password_salt, password_version
 		  FROM users
 		  WHERE LOCATE(?, username) != 0",
 		username,
@@ -131,7 +131,7 @@ pub async fn search_users_limit<'c>(
 	let username = format!("%{username}%");
 	let records = query_as!(
 		UserRow,
-		r"SELECT user_id, username, password_hash, password_salt, password_version
+		r"SELECT id, username, password_hash, password_salt, password_version
 		  FROM users
 		  WHERE LOCATE(?, username) != 0
 		  LIMIT ?
@@ -153,7 +153,7 @@ pub async fn get_username<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,
 ) -> Result<Option<Box<str>>, RawUnexpected> {
-	let username = query_scalar!(r"SELECT username FROM users where user_id = ?", user_id)
+	let username = query_scalar!(r"SELECT username FROM users where id = ?", user_id)
 		.fetch_optional(conn)
 		.await?
 		.map(String::into_boxed_str);
@@ -166,9 +166,9 @@ pub async fn new_user<'c>(
 	user: &User,
 ) -> Result<MySqlQueryResult, sqlx::Error> {
 	query!(
-		r"INSERT INTO users (user_id, username, password_hash, password_salt, password_version)
+		r"INSERT INTO users (id, username, password_hash, password_salt, password_version)
 					 VALUES (?,       ?,        ?,             ?,             ?)",
-		user.user_id,
+		user.id,
 		user.username(),
 		user.password_hash(),
 		user.password_salt(),
@@ -188,12 +188,12 @@ pub async fn update_user<'c>(
 		  password_hash = ?,
 		  password_salt = ?,
 		  password_version = ?
-		  WHERE user_id = ?",
+		  WHERE id = ?",
 		user.username(),
 		user.password_hash(),
 		user.password_salt(),
 		user.password_version(),
-		user.user_id
+		user.id
 	)
 	.execute(conn)
 	.await
@@ -205,7 +205,7 @@ pub async fn update_username<'c>(
 	username: &str,
 ) -> Result<MySqlQueryResult, sqlx::Error> {
 	query!(
-		r"UPDATE users SET username = ? WHERE user_id = ?",
+		r"UPDATE users SET username = ? WHERE id = ?",
 		username,
 		user_id
 	)
@@ -223,7 +223,7 @@ pub async fn update_password<'c>(
 		password_hash = ?,
 		password_salt = ?,
 		password_version = ?
-		WHERE user_id = ?",
+		WHERE id = ?",
 		password.hash(),
 		password.salt(),
 		password.version(),

@@ -141,7 +141,7 @@ async fn create_user(
 	}
 
 	let user = User {
-		user_id,
+		id: user_id,
 		username,
 		password,
 	};
@@ -193,7 +193,7 @@ async fn update_user(
 	}
 
 	let user = User {
-		user_id,
+		id: user_id,
 		username,
 		password,
 	};

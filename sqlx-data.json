@@ -1,10 +1,10 @@
 {
   "db": "MySQL",
-  "016610abc2d730ab748db57c97ea3d7c2cc38d1f3dbc7dfef86742454d4b15f1": {
+  "2e6664bc143576c82ced1c6e58fdcd39606d0fa5c2d74f7eb4680f72cb3bede2": {
     "describe": {
       "columns": [
         {
-          "name": "user_id",
+          "name": "id",
           "ordinal": 0,
           "type_info": {
             "char_set": 63,
@@ -75,63 +75,13 @@
         "Right": 1
       }
     },
-    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE user_id = ?"
+    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE id = ?"
   },
-  "0e1cd93286d20bbaa3e25dbec43b5e28cfbe6506d2d47432259e228f7f92c867": {
+  "3803dd22a747fc5f3d9b56248c2372be8050a77771a898a531fb8cb6cb1aaf1f": {
     "describe": {
       "columns": [
         {
-          "name": "username",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4101
-            },
-            "max_size": 1020,
-            "type": "VarString"
-          }
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT username FROM users where user_id = ?"
-  },
-  "2a874f8bf5448493f2724b31022f3f8ebb535de0d780c19bb11e70d0da3e12fb": {
-    "describe": {
-      "columns": [
-        {
-          "name": "e: bool",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 129
-            },
-            "max_size": 1,
-            "type": "LongLong"
-          }
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT EXISTS(SELECT user_id FROM users WHERE username = ?) as \"e: bool\""
-  },
-  "370adb0e591634e2bc2e0cd904881f79192869a250eb6e1ba02e5074544a58cf": {
-    "describe": {
-      "columns": [
-        {
-          "name": "user_id",
+          "name": "id",
           "ordinal": 0,
           "type_info": {
             "char_set": 63,
@@ -202,13 +152,13 @@
         "Right": 3
       }
     },
-    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0\n\t\t  LIMIT ?\n\t\t  OFFSET ?"
+    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0\n\t\t  LIMIT ?\n\t\t  OFFSET ?"
   },
-  "65b0c5cb580ec3b8867ba7733cda3fddb665e1a5581911d8f0d4c64891871521": {
+  "41ce01000e31fd3df199a16cc5d9835fd21319103f8615ef71960f78d8c1ae3c": {
     "describe": {
       "columns": [
         {
-          "name": "user_id",
+          "name": "id",
           "ordinal": 0,
           "type_info": {
             "char_set": 63,
@@ -279,9 +229,9 @@
         "Right": 1
       }
     },
-    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0"
+    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0"
   },
-  "75241e6a872d943242a56e45e1ea9338caff4863a81c2fc6a2f02e6fa2762e29": {
+  "6c084e6931262b2e4a735a056022ed1aa4fddd65fca68f5193fc899f24c1220b": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -289,33 +239,38 @@
         "Right": 5
       }
     },
-    "query": "INSERT INTO users (user_id, username, password_hash, password_salt, password_version)\n\t\t\t\t\t VALUES (?,       ?,        ?,             ?,             ?)"
+    "query": "INSERT INTO users (id, username, password_hash, password_salt, password_version)\n\t\t\t\t\t VALUES (?,       ?,        ?,             ?,             ?)"
   },
-  "94861f28bcf36f07d35f3e5f9082fc9441cb1a4d172d256ec99f9bf9bfbd61b9": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 5
-      }
-    },
-    "query": "UPDATE users SET\n\t\t  username = ?,\n\t\t  password_hash = ?,\n\t\t  password_salt = ?,\n\t\t  password_version = ?\n\t\t  WHERE user_id = ?"
-  },
-  "c9f329258c6470cd472657e202d3b2be0ff0b2488d00785ebfdf65ab751984ab": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 4
-      }
-    },
-    "query": "UPDATE users SET\n\t\tpassword_hash = ?,\n\t\tpassword_salt = ?,\n\t\tpassword_version = ?\n\t\tWHERE user_id = ?"
-  },
-  "e87cb729ff241fce8e1ddcd43519105910b61184b1ed755a437bd511eac4f9cf": {
+  "76a5f21dacb2b48fb797bcc0e5054b519192ae0bb6dcf8c29fbf9c2913b4746b": {
     "describe": {
       "columns": [
         {
-          "name": "user_id",
+          "name": "username",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT username FROM users where id = ?"
+  },
+  "7b8de80e805fff9ea8a461cc7708cafb062539ca4b75b2f66bfaf44987c736c9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
           "ordinal": 0,
           "type_info": {
             "char_set": 63,
@@ -386,9 +341,9 @@
         "Right": 1
       }
     },
-    "query": "SELECT user_id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE username = ?"
+    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE username = ?"
   },
-  "ed4a40d7a9417985e6552d368146f5791717a41c16921f5074dfa14b637a9209": {
+  "9710cd5915616165c6d27031b21cc7b3cfbd5aae574eb07797dca57064880ef9": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -396,9 +351,9 @@
         "Right": 2
       }
     },
-    "query": "UPDATE users SET username = ? WHERE user_id = ?"
+    "query": "UPDATE users SET username = ? WHERE id = ?"
   },
-  "ef52d73fde91d8771b14607544be1c12985e7db6c902062a2addd3b367502745": {
+  "b1d60244a68b9c132e5b3125505606d156913acf062802e4e1783f9e859f4c49": {
     "describe": {
       "columns": [
         {
@@ -421,6 +376,51 @@
         "Right": 1
       }
     },
-    "query": "SELECT EXISTS(SELECT user_id FROM users WHERE user_id = ?) as \"e: bool\""
+    "query": "SELECT EXISTS(SELECT id FROM users WHERE username = ?) as \"e: bool\""
+  },
+  "b6c6433f0080471d1db6875bdbbe633cd56d781e80f7cbe854f80a5a11aa4a8f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT id FROM users WHERE id = ?) as \"e: bool\""
+  },
+  "df0033aa7c0e5066fed30d944387293d26d1de93b1a24a202214d6ee06fc6a1c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE users SET\n\t\tpassword_hash = ?,\n\t\tpassword_salt = ?,\n\t\tpassword_version = ?\n\t\tWHERE id = ?"
+  },
+  "f9d2c85bdcc3b7d0d1fca4e2f0bb37df6dee23bc50af97d8e4112baacd6eb7c9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "UPDATE users SET\n\t\t  username = ?,\n\t\t  password_hash = ?,\n\t\t  password_salt = ?,\n\t\t  password_version = ?\n\t\t  WHERE id = ?"
   }
 }
