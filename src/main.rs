@@ -16,6 +16,7 @@ async fn main() -> Result<(), RawUnexpected> {
 			.app_data(Data::new(sql_pool.clone()))
 			.service(api::liveops())
 			.service(api::users())
+			.service(api::ops())
 	})
 	.shutdown_timeout(1)
 	.bind(("127.0.0.1", 8080))?

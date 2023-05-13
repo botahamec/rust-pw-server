@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+use exun::RawUnexpected;
 use uuid::Uuid;
 
 use crate::services::crypto::PasswordHash;
@@ -40,5 +41,9 @@ impl User {
 
 	pub fn password_version(&self) -> u8 {
 		self.password.version()
+	}
+
+	pub fn check_password(&self, password: &str) -> Result<bool, RawUnexpected> {
+		self.password.check_password(password)
 	}
 }

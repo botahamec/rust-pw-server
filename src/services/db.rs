@@ -84,6 +84,24 @@ pub async fn get_user<'c>(
 	Ok(Some(record.try_into()?))
 }
 
+pub async fn get_user_by_username<'c>(
+	conn: impl Executor<'c, Database = MySql>,
+	username: &str,
+) -> Result<Option<User>, RawUnexpected> {
+	let record = query_as!(
+		UserRow,
+		r"SELECT user_id, username, password_hash, password_salt, password_version
+		  FROM users WHERE username = ?",
+		username
+	)
+	.fetch_optional(conn)
+	.await?;
+
+	let Some(record) = record else { return Ok(None) };
+
+	Ok(Some(record.try_into()?))
+}
+
 pub async fn get_username<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,
