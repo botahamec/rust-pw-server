@@ -37,6 +37,7 @@ pub async fn initialize(db_url: &str) -> Result<MySqlPool, RawUnexpected> {
 	MySqlPool::connect(db_url).await.unexpect()
 }
 
+/// Check if a user with a given user ID exists
 pub async fn user_id_exists<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	id: Uuid,
@@ -51,6 +52,7 @@ pub async fn user_id_exists<'c>(
 	Ok(exists)
 }
 
+/// Check if a given username is taken
 pub async fn username_is_used<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	username: &str,
@@ -65,6 +67,7 @@ pub async fn username_is_used<'c>(
 	Ok(exists)
 }
 
+/// Get a user from their ID
 pub async fn get_user<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,
@@ -83,6 +86,7 @@ pub async fn get_user<'c>(
 	Ok(Some(record.try_into()?))
 }
 
+/// Get a user from their username
 pub async fn get_user_by_username<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	username: &str,
@@ -101,6 +105,7 @@ pub async fn get_user_by_username<'c>(
 	Ok(Some(record.try_into()?))
 }
 
+/// Search the list of users for a given username
 pub async fn search_users<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	username: &str,
@@ -121,6 +126,7 @@ pub async fn search_users<'c>(
 		.collect::<Result<Box<[User]>, RawUnexpected>>()?)
 }
 
+/// Search the list of users, only returning a certain range of results
 pub async fn search_users_limit<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	username: &str,
@@ -147,6 +153,7 @@ pub async fn search_users_limit<'c>(
 		.collect::<Result<Box<[User]>, RawUnexpected>>()?)
 }
 
+/// Get the username of a user with a certain ID
 pub async fn get_username<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,
@@ -159,6 +166,7 @@ pub async fn get_username<'c>(
 	Ok(username)
 }
 
+/// Create a new user
 pub async fn new_user<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user: &User,
@@ -176,6 +184,7 @@ pub async fn new_user<'c>(
 	.await
 }
 
+/// Update a user
 pub async fn update_user<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user: &User,
@@ -197,6 +206,7 @@ pub async fn update_user<'c>(
 	.await
 }
 
+/// Update the username of a user with the given ID
 pub async fn update_username<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,
@@ -211,6 +221,7 @@ pub async fn update_username<'c>(
 	.await
 }
 
+/// Update the password of a user with the given ID
 pub async fn update_password<'c>(
 	conn: impl Executor<'c, Database = MySql>,
 	user_id: Uuid,

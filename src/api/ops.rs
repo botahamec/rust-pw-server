@@ -6,12 +6,15 @@ use thiserror::Error;
 
 use crate::services::db;
 
+/// A request to login
 #[derive(Debug, Clone, Deserialize)]
 struct LoginRequest {
 	username: Box<str>,
 	password: Box<str>,
 }
 
+/// An error occurred when authenticating, because either the username or
+/// password was invalid.
 #[derive(Debug, Clone, Error)]
 enum LoginFailure {
 	#[error("No user found with the given username")]
@@ -29,6 +32,9 @@ impl ResponseError for LoginFailure {
 	}
 }
 
+/// Returns `200` if login was successful.
+/// Returns `404` if the username is invalid.
+/// Returns `401` if the password was invalid.
 #[post("/login")]
 async fn login(
 	body: web::Json<LoginRequest>,

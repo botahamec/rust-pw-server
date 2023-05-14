@@ -9,9 +9,11 @@ use services::*;
 
 #[actix_web::main]
 async fn main() -> Result<(), RawUnexpected> {
+	// initialize the database
 	let db_url = secrets::database_url()?;
 	let sql_pool = db::initialize(&db_url).await?;
 
+	// start the server
 	HttpServer::new(move || {
 		App::new()
 			.app_data(Data::new(sql_pool.clone()))

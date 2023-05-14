@@ -10,14 +10,17 @@ use crate::models::User;
 use crate::services::crypto::PasswordHash;
 use crate::services::{db, id};
 
+/// Just a username. No password hash, because that'd be tempting fate.
 #[derive(Debug, Clone, Serialize)]
 struct UserResponse {
+	id: Uuid,
 	username: Box<str>,
 }
 
 impl From<User> for UserResponse {
 	fn from(user: User) -> Self {
 		Self {
+			id: user.id,
 			username: user.username,
 		}
 	}
@@ -107,6 +110,7 @@ async fn get_username(
 	Ok(response)
 }
 
+/// A request to create or update user information
 #[derive(Debug, Clone, Deserialize)]
 struct UserRequest {
 	username: Box<str>,
