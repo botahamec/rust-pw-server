@@ -1,5 +1,8 @@
-use actix_web::{web::Data, App, HttpServer};
-use exun::RawUnexpected;
+use actix_web::middleware::Logger;
+use actix_web::web::Data;
+use actix_web::{App, HttpServer};
+
+use exun::*;
 
 mod api;
 mod models;
@@ -16,6 +19,7 @@ async fn main() -> Result<(), RawUnexpected> {
 	// start the server
 	HttpServer::new(move || {
 		App::new()
+			.wrap(Logger::new("[%t] \"%r\" %s %Dms"))
 			.app_data(Data::new(sql_pool.clone()))
 			.service(api::liveops())
 			.service(api::users())

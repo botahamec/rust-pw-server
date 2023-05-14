@@ -1235,6 +1235,7 @@ dependencies = [
  "dotenv",
  "exun",
  "hex",
+ "log",
  "raise",
  "rand",
  "rust-argon2",
