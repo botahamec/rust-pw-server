@@ -1,6 +1,7 @@
-use actix_web::middleware::Logger;
+use actix_web::http::header::{self, HeaderValue};
+use actix_web::middleware::{DefaultHeaders, ErrorHandlerResponse, ErrorHandlers, Logger};
 use actix_web::web::Data;
-use actix_web::{App, HttpServer};
+use actix_web::{dev, App, HttpServer};
 
 use exun::*;
 
@@ -9,6 +10,16 @@ mod models;
 mod services;
 
 use services::*;
+
+fn error_content_language<B>(
+	mut res: dev::ServiceResponse,
+) -> actix_web::Result<ErrorHandlerResponse<B>> {
+	res.response_mut()
+		.headers_mut()
+		.insert(header::CONTENT_LANGUAGE, HeaderValue::from_static("en"));
+
+	Ok(ErrorHandlerResponse::Response(res.map_into_right_body()))
+}
 
 #[actix_web::main]
 async fn main() -> Result<(), RawUnexpected> {
@@ -19,6 +30,7 @@ async fn main() -> Result<(), RawUnexpected> {
 	// start the server
 	HttpServer::new(move || {
 		App::new()
+			.wrap(ErrorHandlers::new().default_handler(error_content_language))
 			.wrap(Logger::new("[%t] \"%r\" %s %Dms"))
 			.app_data(Data::new(sql_pool.clone()))
 			.service(api::liveops())
