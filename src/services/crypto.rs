@@ -6,6 +6,15 @@ use exun::RawUnexpected;
 use crate::services::secrets::pepper;
 
 /// The configuration used for hashing and verifying passwords
+///
+/// # Example
+///
+/// ```
+/// use crate::services::secrets;
+///
+/// let pepper = secrets::pepper();
+/// let config = config(&pepper);
+/// ```
 fn config<'a>(pepper: &'a [u8]) -> argon2::Config<'a> {
 	argon2::Config {
 		hash_length: 32,
