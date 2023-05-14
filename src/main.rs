@@ -23,6 +23,10 @@ fn error_content_language<B>(
 
 #[actix_web::main]
 async fn main() -> Result<(), RawUnexpected> {
+	// load the environment file, but only in debug mode
+	#[cfg(debug_assertions)]
+	dotenv::dotenv()?;
+
 	// initialize the database
 	let db_url = secrets::database_url()?;
 	let sql_pool = db::initialize(&db_url).await?;
@@ -31,7 +35,7 @@ async fn main() -> Result<(), RawUnexpected> {
 	HttpServer::new(move || {
 		App::new()
 			.wrap(ErrorHandlers::new().default_handler(error_content_language))
-			.wrap(Logger::new("[%t] \"%r\" %s %Dms"))
+			.wrap(Logger::new("\"%r\" %s %Dms"))
 			.app_data(Data::new(sql_pool.clone()))
 			.service(api::liveops())
 			.service(api::users())
