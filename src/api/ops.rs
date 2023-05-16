@@ -1,9 +1,14 @@
-use actix_web::{http::StatusCode, post, web, HttpResponse, ResponseError, Scope};
+use std::str::FromStr;
+
+use actix_web::{get, http::StatusCode, post, web, HttpResponse, ResponseError, Scope};
 use raise::yeet;
 use serde::Deserialize;
 use sqlx::MySqlPool;
+use tera::Tera;
 use thiserror::Error;
+use unic_langid::subtags::Language;
 
+use crate::resources::{languages, templates};
 use crate::services::db;
 
 /// A request to login
@@ -60,6 +65,17 @@ async fn login(
 	Ok(response)
 }
 
+#[get("/login")]
+async fn login_page(
+	tera: web::Data<Tera>,
+	translations: web::Data<languages::Translations>,
+) -> HttpResponse {
+	// TODO find a better way of doing this
+	let language = Language::from_str("en").unwrap();
+	let page = templates::login_page(&tera, language, translations.get_ref().clone()).unwrap();
+	HttpResponse::Ok().content_type("text/html").body(page)
+}
+
 pub fn service() -> Scope {
-	web::scope("").service(login)
+	web::scope("").service(login).service(login_page)
 }

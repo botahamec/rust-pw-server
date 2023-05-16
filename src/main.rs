@@ -1,5 +1,5 @@
 use actix_web::http::header::{self, HeaderValue};
-use actix_web::middleware::{DefaultHeaders, ErrorHandlerResponse, ErrorHandlers, Logger};
+use actix_web::middleware::{ErrorHandlerResponse, ErrorHandlers, Logger, NormalizePath};
 use actix_web::web::Data;
 use actix_web::{dev, App, HttpServer};
 
@@ -7,8 +7,10 @@ use exun::*;
 
 mod api;
 mod models;
+mod resources;
 mod services;
 
+use resources::*;
 use services::*;
 
 fn error_content_language<B>(
@@ -31,12 +33,27 @@ async fn main() -> Result<(), RawUnexpected> {
 	let db_url = secrets::database_url()?;
 	let sql_pool = db::initialize(&db_url).await?;
 
+	let tera = templates::initialize()?;
+
+	let translations = languages::initialize()?;
+
 	// start the server
 	HttpServer::new(move || {
 		App::new()
+			// middleware
 			.wrap(ErrorHandlers::new().default_handler(error_content_language))
+			.wrap(NormalizePath::trim())
 			.wrap(Logger::new("\"%r\" %s %Dms"))
+			// app shared state
 			.app_data(Data::new(sql_pool.clone()))
+			.app_data(Data::new(tera.clone()))
+			.app_data(Data::new(translations.clone()))
+			// frontend services
+			// has to be first so they don't get overwritten by the "" scope
+			.service(style::get_css)
+			.service(scripts::get_js)
+			.service(languages::languages())
+			// api services
 			.service(api::liveops())
 			.service(api::users())
 			.service(api::ops())

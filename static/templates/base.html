@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="{{lang()}}">
+	<head>
+		<title>{% block title %}{% endblock title %}</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="stylesheet" href="/style.css" />
+		{% block head %}{% endblock head %}
+	</head>
+	<body>
+		{% block content %}{% endblock content %}
+		<footer>
+			<div id="copyright">&copy; 2023 Amplify Education Inc.</div>
+		</footer>
+	</body>
+</html>

@@ -7,14 +7,19 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4"
+tera = "1"
 serde = "1"
 thiserror = "1"
 rust-argon2 = "1"
 uuid = { version = "1", features = [ "v4", "fast-rng", "serde" ] }
 raise = "2"
+exun = "0.1"
+rust-ini = "0.18"
 dotenv = "0.15"
+parking_lot = "0.12"
+grass = "0.12"
+unic-langid = { version = "0.9", features = ["serde"] }
 rand = "0.8"
 sqlx = { version = "0.6", features = [ "runtime-actix-rustls", "mysql", "uuid", "offline" ] }
 log = "0.4"
 hex = "0.4"
-exun = "0.1"

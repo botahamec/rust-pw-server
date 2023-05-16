@@ -26,19 +26,21 @@ impl From<User> for UserResponse {
 	}
 }
 
-#[get("/")]
-async fn search_users(
-	web::Query(username): web::Query<Option<Box<str>>>,
-	web::Query(limit): web::Query<Option<u32>>,
-	web::Query(offset): web::Query<Option<u32>>,
-	conn: web::Data<MySqlPool>,
-) -> HttpResponse {
+#[derive(Debug, Clone, Deserialize)]
+struct SearchUsers {
+	username: Option<Box<str>>,
+	limit: Option<u32>,
+	offset: Option<u32>,
+}
+
+#[get("")]
+async fn search_users(params: web::Query<SearchUsers>, conn: web::Data<MySqlPool>) -> HttpResponse {
 	let conn = conn.get_ref();
 
-	let username = username.unwrap_or_default();
-	let offset = offset.unwrap_or_default();
+	let username = params.username.clone().unwrap_or_default();
+	let offset = params.offset.unwrap_or_default();
 
-	let results: Box<[UserResponse]> = if let Some(limit) = limit {
+	let results: Box<[UserResponse]> = if let Some(limit) = params.limit {
 		db::search_users_limit(conn, &username, offset, limit)
 			.await
 			.unwrap()
@@ -129,7 +131,7 @@ impl ResponseError for UsernameTakenError {
 	}
 }
 
-#[post("/")]
+#[post("")]
 async fn create_user(
 	body: web::Json<UserRequest>,
 	conn: web::Data<MySqlPool>,
