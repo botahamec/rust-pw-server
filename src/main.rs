@@ -56,6 +56,7 @@ async fn main() -> Result<(), RawUnexpected> {
 			// api services
 			.service(api::liveops())
 			.service(api::users())
+			.service(api::clients())
 			.service(api::ops())
 	})
 	.shutdown_timeout(1)

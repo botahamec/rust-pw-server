@@ -1,7 +1,10 @@
 use std::{hash::Hash, marker::PhantomData};
 
+use actix_web::{http::StatusCode, ResponseError};
 use exun::{Expect, RawUnexpected};
 use raise::yeet;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use thiserror::Error;
 use url::Url;
 use uuid::Uuid;
@@ -10,8 +13,9 @@ use crate::services::crypto::PasswordHash;
 
 /// There are two types of clients, based on their ability to maintain the
 /// security of their client credentials.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(rename_all = "lowercase")]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ClientType {
 	/// A client that is capable of maintaining the confidentiality of their
 	/// credentials, or capable of secure client authentication using other
@@ -26,10 +30,19 @@ pub enum ClientType {
 
 #[derive(Debug, Clone)]
 pub struct Client {
-	ty: ClientType,
 	id: Uuid,
+	ty: ClientType,
+	alias: Box<str>,
 	secret: Option<PasswordHash>,
 	redirect_uris: Box<[Url]>,
+}
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+#[serde(rename_all = "camelCase")]
+pub struct ClientResponse {
+	pub id: Uuid,
+	pub alias: String,
+	pub client_type: ClientType,
 }
 
 impl PartialEq for Client {
@@ -52,8 +65,14 @@ pub struct NoSecretError {
 	_phantom: PhantomData<()>,
 }
 
+impl ResponseError for NoSecretError {
+	fn status_code(&self) -> StatusCode {
+		StatusCode::BAD_REQUEST
+	}
+}
+
 impl NoSecretError {
-	fn new() -> Self {
+	pub(crate) fn new() -> Self {
 		Self {
 			_phantom: PhantomData,
 		}
@@ -61,8 +80,9 @@ impl NoSecretError {
 }
 
 impl Client {
-	pub fn new_public(
+	pub fn new(
 		id: Uuid,
+		alias: &str,
 		ty: ClientType,
 		secret: Option<&str>,
 		redirect_uris: &[Url],
@@ -79,6 +99,7 @@ impl Client {
 
 		Ok(Self {
 			id,
+			alias: Box::from(alias),
 			ty: ClientType::Public,
 			secret,
 			redirect_uris: redirect_uris.into_iter().cloned().collect(),
@@ -89,8 +110,16 @@ impl Client {
 		self.id
 	}
 
+	pub fn alias(&self) -> &str {
+		&self.alias
+	}
+
 	pub fn client_type(&self) -> ClientType {
 		self.ty
+	}
+
+	pub fn redirect_uris(&self) -> &[Url] {
+		&self.redirect_uris
 	}
 
 	pub fn secret_hash(&self) -> Option<&[u8]> {

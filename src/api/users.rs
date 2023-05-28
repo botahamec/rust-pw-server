@@ -12,6 +12,7 @@ use crate::services::{db, id};
 
 /// Just a username. No password hash, because that'd be tempting fate.
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct UserResponse {
 	id: Uuid,
 	username: Box<str>,
@@ -27,6 +28,7 @@ impl From<User> for UserResponse {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct SearchUsers {
 	username: Option<Box<str>>,
 	limit: Option<u32>,
@@ -82,14 +84,14 @@ async fn get_user(
 ) -> Result<HttpResponse, UserNotFoundError> {
 	let conn = conn.get_ref();
 
-	let user_id = user_id.to_owned();
-	let user = db::get_user(conn, user_id).await.unwrap();
+	let id = user_id.to_owned();
+	let username = db::get_username(conn, id).await.unwrap();
 
-	let Some(user) = user else {
-		yeet!(UserNotFoundError {user_id});
+	let Some(username) = username else {
+		yeet!(UserNotFoundError { user_id: id });
 	};
 
-	let response: UserResponse = user.into();
+	let response = UserResponse { id, username };
 	let response = HttpResponse::Ok().json(response);
 	Ok(response)
 }
@@ -114,6 +116,7 @@ async fn get_username(
 
 /// A request to create or update user information
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct UserRequest {
 	username: Box<str>,
 	password: Box<str>,
@@ -138,7 +141,7 @@ async fn create_user(
 ) -> Result<HttpResponse, UsernameTakenError> {
 	let conn = conn.get_ref();
 
-	let user_id = id::new_user_id(conn).await.unwrap();
+	let user_id = id::new_id(conn, db::user_id_exists).await.unwrap();
 	let username = body.username.clone();
 	let password = PasswordHash::new(&body.password).unwrap();
 
@@ -152,7 +155,7 @@ async fn create_user(
 		password,
 	};
 
-	db::new_user(conn, &user).await.unwrap();
+	db::create_user(conn, &user).await.unwrap();
 
 	let response = HttpResponse::Created()
 		.insert_header((header::LOCATION, format!("users/{user_id}")))
@@ -171,8 +174,8 @@ enum UpdateUserError {
 impl ResponseError for UpdateUserError {
 	fn status_code(&self) -> StatusCode {
 		match self {
-			Self::UsernameTaken(..) => StatusCode::CONFLICT,
-			Self::NotFound(..) => StatusCode::NOT_FOUND,
+			Self::UsernameTaken(e) => e.status_code(),
+			Self::NotFound(e) => e.status_code(),
 		}
 	}
 }
@@ -206,10 +209,7 @@ async fn update_user(
 
 	db::update_user(conn, &user).await.unwrap();
 
-	let response = HttpResponse::NoContent()
-		.insert_header((header::LOCATION, format!("users/{user_id}")))
-		.finish();
-
+	let response = HttpResponse::NoContent().finish();
 	Ok(response)
 }
 
@@ -235,10 +235,7 @@ async fn update_username(
 
 	db::update_username(conn, user_id, &body).await.unwrap();
 
-	let response = HttpResponse::NoContent()
-		.insert_header((header::LOCATION, format!("users/{user_id}/username")))
-		.finish();
-
+	let response = HttpResponse::NoContent().finish();
 	Ok(response)
 }
 
