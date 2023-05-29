@@ -9,7 +9,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::resources::{languages, templates};
-use crate::services::db;
+use crate::services::{authorization, db};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -35,6 +35,7 @@ struct AuthorizeCredentials {
 
 #[post("/authorize")]
 async fn authorize(
+	db: web::Data<MySqlPool>,
 	query: web::Query<AuthorizationParameters>,
 	credentials: web::Form<AuthorizeCredentials>,
 ) -> HttpResponse {
@@ -69,7 +70,11 @@ struct TokenRequest {
 }
 
 #[post("/token")]
-async fn token(db: web::Data<MySqlPool>, req: web::Form<TokenRequest>) -> HttpResponse {
+async fn token(
+	db: web::Data<MySqlPool>,
+	req: web::Form<TokenRequest>,
+	authorization: web::Header<authorization::BasicAuthorization>, // TODO make this optional
+) -> HttpResponse {
 	todo!()
 }
 
