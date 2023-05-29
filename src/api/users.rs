@@ -115,7 +115,7 @@ async fn get_username(
 }
 
 /// A request to create or update user information
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UserRequest {
 	username: Box<str>,

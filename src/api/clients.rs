@@ -95,7 +95,7 @@ async fn get_client_redirect_uris(
 	Ok(HttpResponse::Ok().json(redirect_uris))
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 struct ClientRequest {
 	alias: Box<str>,
 	ty: ClientType,

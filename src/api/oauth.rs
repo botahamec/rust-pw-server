@@ -27,7 +27,7 @@ pub struct AuthorizationParameters {
 	state: Option<Box<str>>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize)]
 struct AuthorizeCredentials {
 	username: Box<str>,
 	password: Box<str>,
@@ -57,8 +57,25 @@ async fn authorize_page(
 	HttpResponse::Ok().content_type("text/html").body(page)
 }
 
+#[derive(Clone, Deserialize)]
+#[serde(tag = "grant_type")]
+enum GrantType {}
+
+#[derive(Clone, Deserialize)]
+struct TokenRequest {
+	#[serde(flatten)]
+	grant_type: GrantType,
+	scope: String, // TODO lol no
+}
+
+#[post("/token")]
+async fn token(db: web::Data<MySqlPool>, req: web::Form<TokenRequest>) -> HttpResponse {
+	todo!()
+}
+
 pub fn service() -> Scope {
 	web::scope("/oauth")
 		.service(authorize_page)
 		.service(authorize)
+		.service(token)
 }
