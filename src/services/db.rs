@@ -2,7 +2,7 @@ use exun::*;
 use sqlx::{mysql::MySqlQueryResult, query, query_as, query_scalar, Executor, MySql, MySqlPool};
 use uuid::Uuid;
 
-use crate::models::User;
+use crate::models::user::User;
 
 use super::crypto::PasswordHash;
 

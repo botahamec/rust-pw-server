@@ -6,7 +6,7 @@ use sqlx::MySqlPool;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::models::User;
+use crate::models::user::User;
 use crate::services::crypto::PasswordHash;
 use crate::services::{db, id};
 

@@ -1628,6 +1628,7 @@ dependencies = [
  "tera",
  "thiserror",
  "unic-langid",
+ "url",
  "uuid",
 ]
 
@@ -2309,6 +2310,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

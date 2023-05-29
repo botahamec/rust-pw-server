@@ -12,6 +12,7 @@ serde = "1"
 thiserror = "1"
 rust-argon2 = "1"
 uuid = { version = "1", features = [ "v4", "fast-rng", "serde" ] }
+url = { version = "2", features = ["serde"] }
 raise = "2"
 exun = "0.1"
 rust-ini = "0.18"
