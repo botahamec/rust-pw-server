@@ -6,6 +6,7 @@ use sqlx::MySqlPool;
 use tera::Tera;
 use unic_langid::subtags::Language;
 use url::Url;
+use uuid::Uuid;
 
 use crate::resources::{languages, templates};
 use crate::services::db;
@@ -20,7 +21,10 @@ enum ResponseType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthorizationParameters {
 	response_type: ResponseType,
+	client_id: Uuid,
 	redirect_uri: Option<Url>,
+	scope: String, // TODO lol no
+	state: Option<Box<str>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
