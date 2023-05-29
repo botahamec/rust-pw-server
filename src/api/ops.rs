@@ -65,17 +65,6 @@ async fn login(
 	Ok(response)
 }
 
-#[get("/login")]
-async fn login_page(
-	tera: web::Data<Tera>,
-	translations: web::Data<languages::Translations>,
-) -> HttpResponse {
-	// TODO find a better way of doing this
-	let language = Language::from_str("en").unwrap();
-	let page = templates::login_page(&tera, language, translations.get_ref().clone()).unwrap();
-	HttpResponse::Ok().content_type("text/html").body(page)
-}
-
 pub fn service() -> Scope {
-	web::scope("").service(login).service(login_page)
+	web::scope("").service(login)
 }

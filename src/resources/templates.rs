@@ -5,13 +5,9 @@ use raise::yeet;
 use tera::{Function, Tera, Value};
 use unic_langid::subtags::Language;
 
-use super::languages;
+use crate::api::AuthorizationParameters;
 
-fn make_lang(language: Language) -> impl Function {
-	Box::new(move |_: &HashMap<String, Value>| -> tera::Result<Value> {
-		Ok(Value::String(language.to_string()))
-	})
-}
+use super::languages;
 
 fn make_msg(language: Language, translations: languages::Translations) -> impl Function {
 	Box::new(
@@ -24,10 +20,6 @@ fn make_msg(language: Language, translations: languages::Translations) -> impl F
 	)
 }
 
-fn make_base_url() -> impl Function {
-	Box::new(|_: &HashMap<String, Value>| Ok(Value::String("foo".to_string())))
-}
-
 fn extend_tera(
 	tera: &Tera,
 	language: Language,
@@ -35,9 +27,7 @@ fn extend_tera(
 ) -> Result<Tera, RawUnexpected> {
 	let mut new_tera = initialize()?;
 	new_tera.extend(tera)?;
-	new_tera.register_function("lang", make_lang(language));
 	new_tera.register_function("msg", make_msg(language, translations));
-	new_tera.register_function("baseUrl", make_base_url());
 	Ok(new_tera)
 }
 
@@ -48,12 +38,15 @@ pub fn initialize() -> tera::Result<Tera> {
 
 pub fn login_page(
 	tera: &Tera,
+	params: &AuthorizationParameters,
 	language: Language,
 	mut translations: languages::Translations,
 ) -> Result<String, RawUnexpected> {
 	translations.refresh()?;
 	let mut tera = extend_tera(tera, language, translations)?;
 	tera.full_reload()?;
-	let context = tera::Context::new();
+	let mut context = tera::Context::new();
+	context.insert("lang", language.as_str());
+	context.insert("params", &serde_urlencoded::to_string(params)?);
 	tera.render("login.html", &context).unexpect()
 }

@@ -1,10 +1,10 @@
 {
   "db": "MySQL",
-  "2e6664bc143576c82ced1c6e58fdcd39606d0fa5c2d74f7eb4680f72cb3bede2": {
+  "07221a593704fa3cb5d17f15f3fc18dff0359631db8393b5a1cebfdef748b495": {
     "describe": {
       "columns": [
         {
-          "name": "id",
+          "name": "id: Uuid",
           "ordinal": 0,
           "type_info": {
             "char_set": 63,
@@ -75,13 +75,456 @@
         "Right": 1
       }
     },
-    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE id = ?"
+    "query": "SELECT id as `id: Uuid`, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0"
   },
-  "3803dd22a747fc5f3d9b56248c2372be8050a77771a898a531fb8cb6cb1aaf1f": {
+  "0d28efa4c9c7bdc32bc51152dab7cf4b2ecdd2955c930e59abfeed6e4b25e726": {
     "describe": {
       "columns": [
         {
-          "name": "id",
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT id FROM clients WHERE id = ?) as `e: bool`"
+  },
+  "0fb414b2015617ebdbe1303d71439302920d31275c97995d3d50513b07382ac1": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "UPDATE clients SET type = ? WHERE id = ?"
+  },
+  "19270d592676012569585d7796cb407d2c331dfbc7ac4481e5e38bcee5b6fcde": {
+    "describe": {
+      "columns": [
+        {
+          "name": "type: ClientType",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 180,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT type as `type: ClientType` FROM clients WHERE id = ?"
+  },
+  "1ef0455513dcdc1b7e468d826139613502a8209aca0db3372cd4acc46c226ba5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "DELETE FROM client_redirect_uris WHERE client_id = ?"
+  },
+  "2558b6cad04d6c8af7efabc0e95e669e1de0ce9e04f7de2be321db4cbfae9eb5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "SELECT EXISTS(\n\t\t\t  SELECT redirect_uri\n\t\t\t  FROM client_redirect_uris\n\t\t\t  WHERE client_id = ? AND redirect_uri = ?\n\t\t  ) as `e: bool`"
+  },
+  "32e1e172efd2dfe26c97ec9bf82b5d773a7373ebf949bbe73677c863cc67b45d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT alias FROM clients WHERE alias = ?) as `e: bool`"
+  },
+  "3eef97b5a7d77ef845923d890f929321c9a8a125893fe5f6c847364797d20c9c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "redirect_uri",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4099
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT redirect_uri FROM client_redirect_uris WHERE client_id = ?"
+  },
+  "4e98a6a157a30d9da7621af79845d653ab29eabed1346cd2be60258d8841929d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id: Uuid",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "alias",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "client_type: ClientType",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 180,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id as `id: Uuid`,\n\t\t         alias,\n\t\t\t\t type as `client_type: ClientType`\n\t\t  FROM clients WHERE id = ?"
+  },
+  "76a5f21dacb2b48fb797bcc0e5054b519192ae0bb6dcf8c29fbf9c2913b4746b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "username",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT username FROM users where id = ?"
+  },
+  "866d1d42c698528f0195a0c2fc7c971ca1a140802dd205bd9918bdcc08fe377b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "UPDATE clients SET alias = ? WHERE id = ?"
+  },
+  "8f4656ed3a928dd4b33cf037b9aa60092a17219b9a46366a5fdb0c28ea3e79a7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "UPDATE clients\n\t\t\t  SET secret_hash = NULL, secret_salt = NULL, secret_version = NULL\n\t\t\t  WHERE id = ?"
+  },
+  "91688c5521ab1272e4937451a2bd9c467915f8e4d8cef6eac95013a5a94cc08a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 5
+      }
+    },
+    "query": "INSERT INTO users (id, username, password_hash, password_salt, password_version)\n\t\t\t\t\t VALUES ( ?,        ?,             ?,             ?,                ?)"
+  },
+  "970643c05b6189e1277cfd695492dd3706e0c30615e64812cbd29246ada36bb7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version)\n\t\t\t\t\t   VALUES ( ?,     ?,    ?,           ?,           ?,              ?)"
+  },
+  "9710cd5915616165c6d27031b21cc7b3cfbd5aae574eb07797dca57064880ef9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "UPDATE users SET username = ? WHERE id = ?"
+  },
+  "a5d7e7e4a36cb1bb0675ccde12dadd013ae2c847648b3274494e206b14cc1370": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id: Uuid",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_salt",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_version",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 33
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id as `id: Uuid`, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE id = ?"
+  },
+  "ac93da5d341986aef384f8f11c24861fc290aa9974c44400fb46ee09e383dcae": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "INSERT INTO client_redirect_uris (client_id, redirect_uri)\n\t\t\t\t\t\t\t\t\t    VALUES (        ?,            ?)"
+  },
+  "b1d60244a68b9c132e5b3125505606d156913acf062802e4e1783f9e859f4c49": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT id FROM users WHERE username = ?) as \"e: bool\""
+  },
+  "c61516c0c3d51f322a8207581802c2c9723a65beeaeae558d997590dc9e88ef2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT id FROM users WHERE id = ?) as `e: bool`"
+  },
+  "dda087e364dd82216ea8e5d7266d63ab671382744eb350d446fe1025e2df12bb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "alias",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT alias FROM clients WHERE id = ?"
+  },
+  "df0033aa7c0e5066fed30d944387293d26d1de93b1a24a202214d6ee06fc6a1c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 4
+      }
+    },
+    "query": "UPDATE users SET\n\t\tpassword_hash = ?,\n\t\tpassword_salt = ?,\n\t\tpassword_version = ?\n\t\tWHERE id = ?"
+  },
+  "f488b319d6f387db08fb49920ddb381b2b1496605914275cd1ccd81c9420b23c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id: Uuid",
           "ordinal": 0,
           "type_info": {
             "char_set": 63,
@@ -152,258 +595,9 @@
         "Right": 3
       }
     },
-    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0\n\t\t  LIMIT ?\n\t\t  OFFSET ?"
+    "query": "SELECT id as `id: Uuid`, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0\n\t\t  LIMIT ?\n\t\t  OFFSET ?"
   },
-  "41ce01000e31fd3df199a16cc5d9835fd21319103f8615ef71960f78d8c1ae3c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 4231
-            },
-            "max_size": 16,
-            "type": "String"
-          }
-        },
-        {
-          "name": "username",
-          "ordinal": 1,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4101
-            },
-            "max_size": 1020,
-            "type": "VarString"
-          }
-        },
-        {
-          "name": "password_hash",
-          "ordinal": 2,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 4241
-            },
-            "max_size": 255,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "password_salt",
-          "ordinal": 3,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 4241
-            },
-            "max_size": 255,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "password_version",
-          "ordinal": 4,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 33
-            },
-            "max_size": 10,
-            "type": "Long"
-          }
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users\n\t\t  WHERE LOCATE(?, username) != 0"
-  },
-  "6c084e6931262b2e4a735a056022ed1aa4fddd65fca68f5193fc899f24c1220b": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 5
-      }
-    },
-    "query": "INSERT INTO users (id, username, password_hash, password_salt, password_version)\n\t\t\t\t\t VALUES (?,       ?,        ?,             ?,             ?)"
-  },
-  "76a5f21dacb2b48fb797bcc0e5054b519192ae0bb6dcf8c29fbf9c2913b4746b": {
-    "describe": {
-      "columns": [
-        {
-          "name": "username",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4101
-            },
-            "max_size": 1020,
-            "type": "VarString"
-          }
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT username FROM users where id = ?"
-  },
-  "7b8de80e805fff9ea8a461cc7708cafb062539ca4b75b2f66bfaf44987c736c9": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 4231
-            },
-            "max_size": 16,
-            "type": "String"
-          }
-        },
-        {
-          "name": "username",
-          "ordinal": 1,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4101
-            },
-            "max_size": 1020,
-            "type": "VarString"
-          }
-        },
-        {
-          "name": "password_hash",
-          "ordinal": 2,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 4241
-            },
-            "max_size": 255,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "password_salt",
-          "ordinal": 3,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 4241
-            },
-            "max_size": 255,
-            "type": "Blob"
-          }
-        },
-        {
-          "name": "password_version",
-          "ordinal": 4,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 33
-            },
-            "max_size": 10,
-            "type": "Long"
-          }
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT id, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE username = ?"
-  },
-  "9710cd5915616165c6d27031b21cc7b3cfbd5aae574eb07797dca57064880ef9": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 2
-      }
-    },
-    "query": "UPDATE users SET username = ? WHERE id = ?"
-  },
-  "b1d60244a68b9c132e5b3125505606d156913acf062802e4e1783f9e859f4c49": {
-    "describe": {
-      "columns": [
-        {
-          "name": "e: bool",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 129
-            },
-            "max_size": 1,
-            "type": "LongLong"
-          }
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT EXISTS(SELECT id FROM users WHERE username = ?) as \"e: bool\""
-  },
-  "b6c6433f0080471d1db6875bdbbe633cd56d781e80f7cbe854f80a5a11aa4a8f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "e: bool",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 129
-            },
-            "max_size": 1,
-            "type": "LongLong"
-          }
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT EXISTS(SELECT id FROM users WHERE id = ?) as \"e: bool\""
-  },
-  "df0033aa7c0e5066fed30d944387293d26d1de93b1a24a202214d6ee06fc6a1c": {
+  "f4e088a309a5fa63652fd1aeb95805d64d255a12d5313dbf2f7f2f99c7918e62": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -411,7 +605,17 @@
         "Right": 4
       }
     },
-    "query": "UPDATE users SET\n\t\tpassword_hash = ?,\n\t\tpassword_salt = ?,\n\t\tpassword_version = ?\n\t\tWHERE id = ?"
+    "query": "UPDATE clients SET secret_hash = ?, secret_salt = ?, secret_version = ? WHERE id = ?"
+  },
+  "f88f4fead2c0aeba318dd45546d5321271cdc1cb4f3b39576087b73a1024b78a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 6
+      }
+    },
+    "query": "UPDATE clients SET\n\t\talias = ?,\n\t\ttype = ?,\n\t\tsecret_hash = ?,\n\t\tsecret_salt = ?,\n\t\tsecret_version = ?\n\t\tWHERE id = ?"
   },
   "f9d2c85bdcc3b7d0d1fca4e2f0bb37df6dee23bc50af97d8e4112baacd6eb7c9": {
     "describe": {
@@ -422,5 +626,82 @@
       }
     },
     "query": "UPDATE users SET\n\t\t  username = ?,\n\t\t  password_hash = ?,\n\t\t  password_salt = ?,\n\t\t  password_version = ?\n\t\t  WHERE id = ?"
+  },
+  "fc393b1464413bb7045d33a8ca5aa0100ab217434570e6be732f97db1d9b04aa": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id: Uuid",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_salt",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4241
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "password_version",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 33
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id as `id: Uuid`, username, password_hash, password_salt, password_version\n\t\t  FROM users WHERE username = ?"
   }
 }

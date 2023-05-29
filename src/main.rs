@@ -49,7 +49,6 @@ async fn main() -> Result<(), RawUnexpected> {
 			.app_data(Data::new(tera.clone()))
 			.app_data(Data::new(translations.clone()))
 			// frontend services
-			// has to be first so they don't get overwritten by the "" scope
 			.service(style::get_css)
 			.service(scripts::get_js)
 			.service(languages::languages())
@@ -57,6 +56,7 @@ async fn main() -> Result<(), RawUnexpected> {
 			.service(api::liveops())
 			.service(api::users())
 			.service(api::clients())
+			.service(api::oauth())
 			.service(api::ops())
 	})
 	.shutdown_timeout(1)

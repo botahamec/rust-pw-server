@@ -98,6 +98,25 @@ pub async fn get_client_redirect_uris<'c>(
 		.collect()
 }
 
+pub async fn client_has_redirect_uri<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+	url: Url,
+) -> Result<bool, RawUnexpected> {
+	query_scalar!(
+		r"SELECT EXISTS(
+			  SELECT redirect_uri
+			  FROM client_redirect_uris
+			  WHERE client_id = ? AND redirect_uri = ?
+		  ) as `e: bool`",
+		id,
+		url.to_string()
+	)
+	.fetch_one(executor)
+	.await
+	.unexpect()
+}
+
 async fn delete_client_redirect_uris<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	id: Uuid,
