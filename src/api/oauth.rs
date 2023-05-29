@@ -67,14 +67,16 @@ struct TokenRequest {
 	#[serde(flatten)]
 	grant_type: GrantType,
 	scope: String, // TODO lol no
+	               // TODO support optional client credentials in here
 }
 
 #[post("/token")]
 async fn token(
 	db: web::Data<MySqlPool>,
 	req: web::Form<TokenRequest>,
-	authorization: web::Header<authorization::BasicAuthorization>, // TODO make this optional
+	authorization: Option<web::Header<authorization::BasicAuthorization>>,
 ) -> HttpResponse {
+	// TODO protect against brute force attacks
 	todo!()
 }
 
