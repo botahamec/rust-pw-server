@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Log In{% endblock title %}
+{% block title %}{{ msg(key="loginTitle") }}{% endblock title %}
 {% block content %}
-<form method="post" action="{{ baseUrl() }}/authenticate">
-	<label for="username">Username</label>
-	<input id="username" type="text" name="username" tabindex="0" placeholder="Enter your username" autofocus autocomplete="off" />
-	<label for="password">Password</label>
-	<input id="password" type="password" name="password" tabindex="0" placeholder="Enter your password" autofocus autocomplete="off" />
-	<input type="submit" tabindex="0" name="login" value="Log In" />
+<form method="post" action="/authorize?{{params}}">
+	<label for="username">{{ msg(key="usernameLabel") }}</label>
+	<input id="username" type="text" name="username" tabindex="0" placeholder="{{ msg(key="usernamePlaceholder") }}" autofocus />
+	<label for="password">{{ msg(key="passwordLabel") }}</label>
+	<input id="password" type="password" name="password" tabindex="0" placeholder="{{ msg(key="passwordPlaceholder") }}" />
+	<input type="submit" tabindex="0" name="login" value="{{ msg(key="loginSubmitButton") }}" />
 </form>
 {% endblock content %}
