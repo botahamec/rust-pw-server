@@ -8,6 +8,7 @@ use exun::*;
 mod api;
 mod models;
 mod resources;
+mod scopes;
 mod services;
 
 use resources::*;
