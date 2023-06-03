@@ -1,7 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use actix_web::{get, http::StatusCode, web, HttpResponse, ResponseError};
 use exun::{Expect, ResultErrorExt};
+use path_clean::clean;
 use raise::yeet;
 use serde::Serialize;
 use thiserror::Error;
@@ -21,7 +22,7 @@ impl ResponseError for LoadScriptError {
 }
 
 fn load(script: &str) -> Result<String, Expect<LoadScriptError>> {
-	let path = PathBuf::from(format!("static/scripts/{}.js", script));
+	let path = clean(format!("static/scripts/{}.js", script));
 	if !path.exists() {
 		yeet!(LoadScriptError::FileNotFound(path.into()).into());
 	}

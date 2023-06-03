@@ -1,8 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use actix_web::{get, http::StatusCode, web, HttpResponse, ResponseError};
 use exun::{Expect, ResultErrorExt};
 use grass::OutputStyle;
+use path_clean::clean;
 use raise::yeet;
 use serde::Serialize;
 use thiserror::Error;
@@ -37,7 +38,7 @@ impl ResponseError for LoadStyleError {
 
 pub fn load(stylesheet: &str) -> Result<String, Expect<LoadStyleError>> {
 	let options = options();
-	let path = PathBuf::from(format!("static/style/{}.scss", stylesheet));
+	let path = clean(format!("static/style/{}.scss", stylesheet));
 	if !path.exists() {
 		yeet!(LoadStyleError::FileNotFound(path.into()).into());
 	}
