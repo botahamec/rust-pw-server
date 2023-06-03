@@ -96,6 +96,7 @@ async fn get_client_redirect_uris(
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ClientRequest {
 	alias: Box<str>,
 	ty: ClientType,
