@@ -49,7 +49,7 @@ impl PasswordHash {
 	pub fn new(password: &str) -> Result<Self, RawUnexpected> {
 		let password = password.as_bytes();
 
-		let salt: [u8; 16] = rand::random();
+		let salt: [u8; 32] = rand::random();
 		let salt = Box::from(salt);
 		let pepper = pepper()?;
 		let hash = hash_raw(password, &salt, &config(&pepper))?.into_boxed_slice();

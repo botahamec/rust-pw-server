@@ -2,8 +2,10 @@ use exun::{RawUnexpected, ResultErrorExt};
 use sqlx::MySqlPool;
 
 mod client;
+mod jwt;
 mod user;
 
+pub use self::jwt::*;
 pub use client::*;
 pub use user::*;
 
