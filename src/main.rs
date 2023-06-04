@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use actix_web::http::header::{self, HeaderValue};
 use actix_web::middleware::{ErrorHandlerResponse, ErrorHandlers, Logger, NormalizePath};
 use actix_web::web::Data;
@@ -13,6 +15,7 @@ mod services;
 
 use resources::*;
 use services::*;
+use sqlx::MySqlPool;
 
 fn error_content_language<B>(
 	mut res: dev::ServiceResponse,
@@ -22,6 +25,23 @@ fn error_content_language<B>(
 		.insert(header::CONTENT_LANGUAGE, HeaderValue::from_static("en"));
 
 	Ok(ErrorHandlerResponse::Response(res.map_into_right_body()))
+}
+
+async fn delete_expired_tokens(db: MySqlPool) {
+	let db = db.clone();
+	let mut interval = actix_rt::time::interval(Duration::from_secs(60 * 10));
+	loop {
+		interval.tick().await;
+		if let Err(e) = db::delete_expired_auth_codes(&db).await {
+			log::error!("{}", e);
+		}
+		if let Err(e) = db::delete_expired_access_tokens(&db).await {
+			log::error!("{}", e);
+		}
+		if let Err(e) = db::delete_expired_refresh_tokens(&db).await {
+			log::error!("{}", e);
+		}
+	}
 }
 
 #[actix_web::main]
@@ -37,6 +57,8 @@ async fn main() -> Result<(), RawUnexpected> {
 	let tera = templates::initialize()?;
 
 	let translations = languages::initialize()?;
+
+	actix_rt::spawn(delete_expired_tokens(sql_pool.clone()));
 
 	// start the server
 	HttpServer::new(move || {

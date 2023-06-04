@@ -147,6 +147,16 @@
     },
     "query": "DELETE FROM client_redirect_uris WHERE client_id = ?"
   },
+  "22617c9e76806df78eb4a2636780837ff0993f142029a0e9d323981dd316a9d8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "INSERT INTO auth_codes (jti, exp)\n\t                VALUES       (  ?,   ?)"
+  },
   "2558b6cad04d6c8af7efabc0e95e669e1de0ce9e04f7de2be321db4cbfae9eb5": {
     "describe": {
       "columns": [
@@ -197,6 +207,26 @@
     },
     "query": "SELECT EXISTS(SELECT alias FROM clients WHERE alias = ?) as `e: bool`"
   },
+  "37589f6cbc849bbbcf243c67392c1a39f6d3d408f999a030fd21e1b42021f08e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 3
+      }
+    },
+    "query": "INSERT INTO access_tokens (jti, auth_code, exp)\n\t                         VALUES (  ?,         ?,   ?)"
+  },
+  "3976faac4ffd4660e3d9523fcb7f69f52797d7e0b0bc6a0b9bb18a5198bc9721": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "DELETE FROM access_tokens WHERE auth_code = ?"
+  },
   "3eef97b5a7d77ef845923d890f929321c9a8a125893fe5f6c847364797d20c9c": {
     "describe": {
       "columns": [
@@ -221,6 +251,16 @@
       }
     },
     "query": "SELECT redirect_uri FROM client_redirect_uris WHERE client_id = ?"
+  },
+  "4de0b09543ed56032215a9830d75a2b41878bdb795df1fc3786a530a5455ae9e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "DELETE FROM refresh_tokens WHERE exp < ?"
   },
   "4e98a6a157a30d9da7621af79845d653ab29eabed1346cd2be60258d8841929d": {
     "describe": {
@@ -273,6 +313,86 @@
     },
     "query": "SELECT id as `id: Uuid`,\n\t\t         alias,\n\t\t\t\t type as `client_type: ClientType`\n\t\t  FROM clients WHERE id = ?"
   },
+  "4faa455ac38672dd2f3f29287125d772aae6956d7a3c0e67d31597e09778e1ee": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "DELETE FROM auth_codes WHERE exp < ?"
+  },
+  "64bd64c1c6b272fdd47d12e928be89f2eb69cc0a9f904402d038616b460c8553": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "UPDATE refresh_tokens SET revoked_reason = ? WHERE jti = ?"
+  },
+  "65e689c69b316a8c3423cc6b96f536ec967530f8f1761f1fee45af98397f2292": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT jti FROM refresh_tokens WHERE jti = ?) as `e: bool`"
+  },
+  "67705466821f2940497b914bd10e7fafae76f5deb5d5460d9126ccfdb8fab51d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "DELETE FROM access_tokens WHERE exp < ?"
+  },
+  "72abd9cddf183bcb13ea75491c532ede5a1b165c56347f0c4822ff19a50758d4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT jti FROM access_tokens WHERE jti = ?) as `e: bool`"
+  },
   "76a5f21dacb2b48fb797bcc0e5054b519192ae0bb6dcf8c29fbf9c2913b4746b": {
     "describe": {
       "columns": [
@@ -298,6 +418,16 @@
     },
     "query": "SELECT username FROM users where id = ?"
   },
+  "7a004114b63d4356573591c960bb640d1d1ab61c4dc89e9030d59869278a2f94": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "DELETE FROM auth_codes WHERE jti = ?"
+  },
   "866d1d42c698528f0195a0c2fc7c971ca1a140802dd205bd9918bdcc08fe377b": {
     "describe": {
       "columns": [],
@@ -307,6 +437,16 @@
       }
     },
     "query": "UPDATE clients SET alias = ? WHERE id = ?"
+  },
+  "8c2f7aa20382907ae8e101522c75d6ea3d371d78aca92b2b7c90c544cc0e4919": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "UPDATE refresh_tokens SET revoked_reason = ? WHERE auth_code = ?"
   },
   "8f4656ed3a928dd4b33cf037b9aa60092a17219b9a46366a5fdb0c28ea3e79a7": {
     "describe": {
@@ -327,6 +467,31 @@
       }
     },
     "query": "INSERT INTO users (id, username, password_hash, password_salt, password_version)\n\t\t\t\t\t VALUES ( ?,        ?,             ?,             ?,                ?)"
+  },
+  "95484e1dd619ec5e486ce61b3827a08cbe629826d1fb89a6af9790eb54eb2185": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 129
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(SELECT jti FROM auth_codes WHERE jti = ?) as `e: bool`"
   },
   "970643c05b6189e1277cfd695492dd3706e0c30615e64812cbd29246ada36bb7": {
     "describe": {
@@ -484,6 +649,31 @@
       }
     },
     "query": "SELECT EXISTS(SELECT id FROM users WHERE id = ?) as `e: bool`"
+  },
+  "db75cdf97363794437c3a14c142639473ac2a07cdf00fa7186407c27678dee96": {
+    "describe": {
+      "columns": [
+        {
+          "name": "e: bool",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 128
+            },
+            "max_size": 1,
+            "type": "LongLong"
+          }
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT EXISTS(\n\t\t\tSELECT revoked_reason FROM refresh_tokens WHERE jti = ? and revoked_reason IS NOT NULL\n\t\t) as `e: bool`"
   },
   "dda087e364dd82216ea8e5d7266d63ab671382744eb350d446fe1025e2df12bb": {
     "describe": {
