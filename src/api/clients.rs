@@ -125,6 +125,45 @@ async fn get_client_redirect_uris(
 	Ok(HttpResponse::Ok().json(redirect_uris))
 }
 
+#[get("/{client_id}/allowed-scopes")]
+async fn get_client_allowed_scopes(
+	client_id: web::Path<Uuid>,
+	db: web::Data<MySqlPool>,
+) -> Result<HttpResponse, ClientNotFound> {
+	let db = db.as_ref();
+	let id = *client_id;
+
+	let Some(allowed_scopes) = db::get_client_allowed_scopes(db, id).await.unwrap() else {
+		yeet!(ClientNotFound::new(id))
+	};
+
+	let allowed_scopes = allowed_scopes.split_whitespace().collect::<Box<[&str]>>();
+
+	Ok(HttpResponse::Ok().json(allowed_scopes))
+}
+
+#[get("/{client_id}/default-scopes")]
+async fn get_client_default_scopes(
+	client_id: web::Path<Uuid>,
+	db: web::Data<MySqlPool>,
+) -> Result<HttpResponse, ClientNotFound> {
+	let db = db.as_ref();
+	let id = *client_id;
+
+	let Some(default_scopes) = db::get_client_default_scopes(db, id).await.unwrap() else {
+		yeet!(ClientNotFound::new(id))
+	};
+
+	let default_scopes = default_scopes.map(|scopes| {
+		scopes
+			.split_whitespace()
+			.map(Box::from)
+			.collect::<Box<[Box<str>]>>()
+	});
+
+	Ok(HttpResponse::Ok().json(default_scopes))
+}
+
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ClientRequest {
@@ -289,6 +328,48 @@ async fn update_client_type(
 	Ok(HttpResponse::NoContent().finish())
 }
 
+#[put("/{id}/allowed-scopes")]
+async fn update_client_allowed_scopes(
+	id: web::Path<Uuid>,
+	body: web::Json<Box<[Box<str>]>>,
+	db: web::Data<MySqlPool>,
+) -> Result<HttpResponse, UpdateClientError> {
+	let db = db.get_ref();
+	let id = *id;
+	let allowed_scopes = body.0.join(" ");
+
+	if !db::client_id_exists(db, id).await.unwrap() {
+		yeet!(ClientNotFound::new(id).into());
+	}
+
+	db::update_client_allowed_scopes(db, id, &allowed_scopes)
+		.await
+		.unwrap();
+
+	Ok(HttpResponse::NoContent().finish())
+}
+
+#[put("/{id}/default-scopes")]
+async fn update_client_default_scopes(
+	id: web::Path<Uuid>,
+	body: web::Json<Option<Box<[Box<str>]>>>,
+	db: web::Data<MySqlPool>,
+) -> Result<HttpResponse, UpdateClientError> {
+	let db = db.get_ref();
+	let id = *id;
+	let default_scopes = body.0.map(|s| s.join(" "));
+
+	if !db::client_id_exists(db, id).await.unwrap() {
+		yeet!(ClientNotFound::new(id).into());
+	}
+
+	db::update_client_default_scopes(db, id, default_scopes)
+		.await
+		.unwrap();
+
+	Ok(HttpResponse::NoContent().finish())
+}
+
 #[put("/{id}/redirect-uris")]
 async fn update_client_redirect_uris(
 	id: web::Path<Uuid>,
@@ -338,11 +419,15 @@ pub fn service() -> Scope {
 		.service(get_client)
 		.service(get_client_alias)
 		.service(get_client_type)
+		.service(get_client_allowed_scopes)
+		.service(get_client_default_scopes)
 		.service(get_client_redirect_uris)
 		.service(create_client)
 		.service(update_client)
 		.service(update_client_alias)
 		.service(update_client_type)
+		.service(update_client_allowed_scopes)
+		.service(update_client_default_scopes)
 		.service(update_client_redirect_uris)
 		.service(update_client_secret)
 }

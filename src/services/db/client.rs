@@ -94,6 +94,28 @@ pub async fn get_client_type<'c>(
 	Ok(ty)
 }
 
+pub async fn get_client_allowed_scopes<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+) -> Result<Option<Box<str>>, RawUnexpected> {
+	let scopes = query_scalar!("SELECT allowed_scopes FROM clients WHERE id = ?", id)
+		.fetch_optional(executor)
+		.await?;
+
+	Ok(scopes.map(Box::from))
+}
+
+pub async fn get_client_default_scopes<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+) -> Result<Option<Option<Box<str>>>, RawUnexpected> {
+	let scopes = query_scalar!("SELECT default_scopes FROM clients WHERE id = ?", id)
+		.fetch_optional(executor)
+		.await?;
+
+	Ok(scopes.map(|s| s.map(Box::from)))
+}
+
 pub async fn get_client_redirect_uris<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	id: Uuid,
@@ -234,6 +256,34 @@ pub async fn update_client_type<'c>(
 	query!("UPDATE clients SET type = ? WHERE id = ?", ty, id)
 		.execute(executor)
 		.await
+}
+
+pub async fn update_client_allowed_scopes<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+	allowed_scopes: &str,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+	query!(
+		"UPDATE clients SET allowed_scopes = ? WHERE id = ?",
+		allowed_scopes,
+		id
+	)
+	.execute(executor)
+	.await
+}
+
+pub async fn update_client_default_scopes<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+	default_scopes: Option<String>,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+	query!(
+		"UPDATE clients SET default_scopes = ? WHERE id = ?",
+		default_scopes,
+		id
+	)
+	.execute(executor)
+	.await
 }
 
 pub async fn update_client_redirect_uris<'c>(
