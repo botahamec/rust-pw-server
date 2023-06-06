@@ -1,14 +1,25 @@
 use std::str::FromStr;
 
 use exun::{RawUnexpected, ResultErrorExt};
-use sqlx::{mysql::MySqlQueryResult, query, query_as, query_scalar, Executor, MySql, Transaction};
+use sqlx::{
+	mysql::MySqlQueryResult, query, query_as, query_scalar, Executor, FromRow, MySql, Transaction,
+};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-	models::client::{Client, ClientResponse, ClientType},
+	models::client::{Client, ClientType},
 	services::crypto::PasswordHash,
 };
+
+#[derive(Debug, Clone, FromRow)]
+pub struct ClientRow {
+	pub id: Uuid,
+	pub alias: String,
+	pub client_type: ClientType,
+	pub allowed_scopes: String,
+	pub default_scopes: Option<String>,
+}
 
 pub async fn client_id_exists<'c>(
 	executor: impl Executor<'c, Database = MySql>,
@@ -39,12 +50,14 @@ pub async fn client_alias_exists<'c>(
 pub async fn get_client_response<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	id: Uuid,
-) -> Result<Option<ClientResponse>, RawUnexpected> {
+) -> Result<Option<ClientRow>, RawUnexpected> {
 	let record = query_as!(
-		ClientResponse,
+		ClientRow,
 		r"SELECT id as `id: Uuid`,
 		         alias,
-				 type as `client_type: ClientType`
+				 type as `client_type: ClientType`,
+				 allowed_scopes,
+				 default_scopes
 		  FROM clients WHERE id = ?",
 		id
 	)
@@ -153,14 +166,16 @@ pub async fn create_client<'c>(
 	client: &Client,
 ) -> Result<(), sqlx::Error> {
 	query!(
-		r"INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version)
-					   VALUES ( ?,     ?,    ?,           ?,           ?,              ?)",
+		r"INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version, allowed_scopes, default_scopes)
+					   VALUES ( ?,     ?,    ?,           ?,           ?,              ?,              ?,              ?)",
 		client.id(),
 		client.alias(),
 		client.client_type(),
 		client.secret_hash(),
 		client.secret_salt(),
 		client.secret_version(),
+		client.allowed_scopes(),
+		client.default_scopes()
 	)
 	.execute(&mut transaction)
 	.await?;
@@ -180,13 +195,17 @@ pub async fn update_client<'c>(
 		type = ?,
 		secret_hash = ?,
 		secret_salt = ?,
-		secret_version = ?
+		secret_version = ?,
+		allowed_scopes = ?,
+		default_scopes = ?
 		WHERE id = ?",
 		client.client_type(),
 		client.alias(),
 		client.secret_hash(),
 		client.secret_salt(),
 		client.secret_version(),
+		client.allowed_scopes(),
+		client.default_scopes(),
 		client.id()
 	)
 	.execute(&mut transaction)

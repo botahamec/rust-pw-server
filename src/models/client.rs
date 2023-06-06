@@ -4,7 +4,6 @@ use actix_web::{http::StatusCode, ResponseError};
 use exun::{Expect, RawUnexpected};
 use raise::yeet;
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 use thiserror::Error;
 use url::Url;
 use uuid::Uuid;
@@ -34,15 +33,9 @@ pub struct Client {
 	ty: ClientType,
 	alias: Box<str>,
 	secret: Option<PasswordHash>,
+	allowed_scopes: Box<[Box<str>]>,
+	default_scopes: Option<Box<[Box<str>]>>,
 	redirect_uris: Box<[Url]>,
-}
-
-#[derive(Debug, Clone, Serialize, FromRow)]
-#[serde(rename_all = "camelCase")]
-pub struct ClientResponse {
-	pub id: Uuid,
-	pub alias: String,
-	pub client_type: ClientType,
 }
 
 impl PartialEq for Client {
@@ -85,6 +78,8 @@ impl Client {
 		alias: &str,
 		ty: ClientType,
 		secret: Option<&str>,
+		allowed_scopes: Box<[Box<str>]>,
+		default_scopes: Option<Box<[Box<str>]>>,
 		redirect_uris: &[Url],
 	) -> Result<Self, Expect<NoSecretError>> {
 		let secret = if let Some(secret) = secret {
@@ -102,6 +97,8 @@ impl Client {
 			alias: Box::from(alias),
 			ty: ClientType::Public,
 			secret,
+			allowed_scopes,
+			default_scopes,
 			redirect_uris: redirect_uris.into_iter().cloned().collect(),
 		})
 	}
@@ -132,6 +129,14 @@ impl Client {
 
 	pub fn secret_version(&self) -> Option<u8> {
 		self.secret.as_ref().map(|s| s.version())
+	}
+
+	pub fn allowed_scopes(&self) -> String {
+		self.allowed_scopes.join(" ")
+	}
+
+	pub fn default_scopes(&self) -> Option<String> {
+		self.default_scopes.clone().map(|s| s.join(" "))
 	}
 
 	pub fn check_secret(&self, secret: &str) -> Option<Result<bool, RawUnexpected>> {

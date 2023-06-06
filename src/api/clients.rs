@@ -1,7 +1,7 @@
 use actix_web::http::{header, StatusCode};
 use actix_web::{get, post, put, web, HttpResponse, ResponseError, Scope};
 use raise::yeet;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use thiserror::Error;
 use url::Url;
@@ -9,7 +9,36 @@ use uuid::Uuid;
 
 use crate::models::client::{Client, ClientType, NoSecretError};
 use crate::services::crypto::PasswordHash;
+use crate::services::db::ClientRow;
 use crate::services::{db, id};
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ClientResponse {
+	client_id: Uuid,
+	alias: Box<str>,
+	client_type: ClientType,
+	allowed_scopes: Box<[Box<str>]>,
+	default_scopes: Option<Box<[Box<str>]>>,
+}
+
+impl From<ClientRow> for ClientResponse {
+	fn from(value: ClientRow) -> Self {
+		Self {
+			client_id: value.id,
+			alias: value.alias.into_boxed_str(),
+			client_type: value.client_type,
+			allowed_scopes: value
+				.allowed_scopes
+				.split_whitespace()
+				.map(Box::from)
+				.collect(),
+			default_scopes: value
+				.default_scopes
+				.map(|s| s.split_whitespace().map(Box::from).collect()),
+		}
+	}
+}
 
 #[derive(Debug, Clone, Copy, Error)]
 #[error("No client with the given client ID was found")]
@@ -42,9 +71,10 @@ async fn get_client(
 	};
 
 	let redirect_uris_link = format!("</clients/{client_id}/redirect-uris>; rel=\"redirect-uris\"");
+	let response: ClientResponse = client.into();
 	let response = HttpResponse::Ok()
 		.append_header((header::LINK, redirect_uris_link))
-		.json(client);
+		.json(response);
 	Ok(response)
 }
 
@@ -102,6 +132,8 @@ struct ClientRequest {
 	ty: ClientType,
 	redirect_uris: Box<[Url]>,
 	secret: Option<Box<str>>,
+	allowed_scopes: Box<[Box<str>]>,
+	default_scopes: Option<Box<[Box<str>]>>,
 }
 
 #[derive(Debug, Clone, Error)]
@@ -142,6 +174,8 @@ async fn create_client(
 		&alias,
 		body.ty,
 		body.secret.as_deref(),
+		body.allowed_scopes.clone(),
+		body.default_scopes.clone(),
 		&body.redirect_uris,
 	)
 	.map_err(|e| e.unwrap())?;
@@ -197,6 +231,8 @@ async fn update_client(
 		&alias,
 		body.ty,
 		body.secret.as_deref(),
+		body.allowed_scopes.clone(),
+		body.default_scopes.clone(),
 		&body.redirect_uris,
 	)
 	.map_err(|e| e.unwrap())?;
