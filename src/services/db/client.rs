@@ -21,6 +21,13 @@ pub struct ClientRow {
 	pub default_scopes: Option<String>,
 }
 
+#[derive(Clone, FromRow)]
+struct HashRow {
+	secret_hash: Option<Vec<u8>>,
+	secret_salt: Option<Vec<u8>>,
+	secret_version: Option<u32>,
+}
+
 pub async fn client_id_exists<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	id: Uuid,
@@ -43,6 +50,19 @@ pub async fn client_alias_exists<'c>(
 		alias
 	)
 	.fetch_one(executor)
+	.await
+	.unexpect()
+}
+
+pub async fn get_client_id_by_alias<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	alias: &str,
+) -> Result<Option<Uuid>, RawUnexpected> {
+	query_scalar!(
+		"SELECT id as `id: Uuid` FROM clients WHERE alias = ?",
+		alias
+	)
+	.fetch_optional(executor)
 	.await
 	.unexpect()
 }
@@ -116,6 +136,28 @@ pub async fn get_client_default_scopes<'c>(
 	Ok(scopes.map(|s| s.map(Box::from)))
 }
 
+pub async fn get_client_secret<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+) -> Result<Option<PasswordHash>, RawUnexpected> {
+	let hash = query_as!(
+		HashRow,
+		r"SELECT secret_hash, secret_salt, secret_version
+		FROM clients WHERE id = ?",
+		id
+	)
+	.fetch_optional(executor)
+	.await?;
+
+	let Some(hash) = hash else { return Ok(None) };
+	let Some(version) = hash.secret_version else { return Ok(None) };
+	let Some(salt) = hash.secret_hash else { return Ok(None) };
+	let Some(hash) = hash.secret_salt else { return Ok(None) };
+
+	let hash = PasswordHash::from_fields(&hash, &salt, version as u8);
+	Ok(Some(hash))
+}
+
 pub async fn get_client_redirect_uris<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	id: Uuid,
@@ -136,7 +178,7 @@ pub async fn get_client_redirect_uris<'c>(
 pub async fn client_has_redirect_uri<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	id: Uuid,
-	url: Url,
+	url: &Url,
 ) -> Result<bool, RawUnexpected> {
 	query_scalar!(
 		r"SELECT EXISTS(

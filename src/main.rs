@@ -29,7 +29,7 @@ fn error_content_language<B>(
 
 async fn delete_expired_tokens(db: MySqlPool) {
 	let db = db.clone();
-	let mut interval = actix_rt::time::interval(Duration::from_secs(60 * 10));
+	let mut interval = actix_rt::time::interval(Duration::from_secs(60 * 20));
 	loop {
 		interval.tick().await;
 		if let Err(e) = db::delete_expired_auth_codes(&db).await {

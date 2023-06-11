@@ -32,6 +32,7 @@ pub struct Claims {
 	client_id: Uuid,
 	auth_code_id: Uuid,
 	token_type: TokenType,
+	redirect_uri: Option<Url>,
 }
 
 #[derive(Debug, Clone, Copy, sqlx::Type)]
@@ -43,18 +44,19 @@ pub enum RevokedRefreshTokenReason {
 
 impl Claims {
 	pub async fn auth_code<'c>(
-		db: MySqlPool,
+		db: &MySqlPool,
 		self_id: Url,
 		client_id: Uuid,
 		scopes: &str,
+		redirect_uri: &Url,
 	) -> Result<Self, RawUnexpected> {
 		let five_minutes = Duration::minutes(5);
 
-		let id = new_id(&db, db::auth_code_exists).await?;
+		let id = new_id(db, db::auth_code_exists).await?;
 		let time = Utc::now();
 		let exp = time + five_minutes;
 
-		db::create_auth_code(&db, id, exp).await?;
+		db::create_auth_code(db, id, exp).await?;
 
 		Ok(Self {
 			iss: self_id,
@@ -67,22 +69,23 @@ impl Claims {
 			client_id,
 			auth_code_id: id,
 			token_type: TokenType::Authorization,
+			redirect_uri: Some(redirect_uri.clone()),
 		})
 	}
 
 	pub async fn access_token<'c>(
-		db: MySqlPool,
+		db: &MySqlPool,
 		auth_code_id: Uuid,
 		self_id: Url,
 		client_id: Uuid,
 		duration: Duration,
 		scopes: &str,
 	) -> Result<Self, RawUnexpected> {
-		let id = new_id(&db, db::access_token_exists).await?;
+		let id = new_id(db, db::access_token_exists).await?;
 		let time = Utc::now();
 		let exp = time + duration;
 
-		db::create_access_token(&db, id, auth_code_id, exp)
+		db::create_access_token(db, id, auth_code_id, exp)
 			.await
 			.unexpect()?;
 
@@ -97,19 +100,23 @@ impl Claims {
 			client_id,
 			auth_code_id,
 			token_type: TokenType::Access,
+			redirect_uri: None,
 		})
 	}
 
-	pub async fn refresh_token(db: MySqlPool, other_token: Claims) -> Result<Self, RawUnexpected> {
+	pub async fn refresh_token(
+		db: &MySqlPool,
+		other_token: &Claims,
+	) -> Result<Self, RawUnexpected> {
 		let one_day = Duration::days(1);
 
-		let id = new_id(&db, db::refresh_token_exists).await?;
+		let id = new_id(db, db::refresh_token_exists).await?;
 		let time = Utc::now();
 		let exp = other_token.exp + one_day;
 
-		db::create_refresh_token(&db, id, other_token.auth_code_id, exp).await?;
+		db::create_refresh_token(db, id, other_token.auth_code_id, exp).await?;
 
-		let mut claims = other_token;
+		let mut claims = other_token.clone();
 		claims.exp = exp;
 		claims.iat = Some(time);
 		claims.jti = id;
@@ -119,15 +126,15 @@ impl Claims {
 	}
 
 	pub async fn refreshed_access_token(
-		db: MySqlPool,
+		db: &MySqlPool,
 		refresh_token: Claims,
 		exp_time: Duration,
 	) -> Result<Self, RawUnexpected> {
-		let id = new_id(&db, db::access_token_exists).await?;
+		let id = new_id(db, db::access_token_exists).await?;
 		let time = Utc::now();
 		let exp = time + exp_time;
 
-		db::create_access_token(&db, id, refresh_token.auth_code_id, exp).await?;
+		db::create_access_token(db, id, refresh_token.auth_code_id, exp).await?;
 
 		let mut claims = refresh_token;
 		claims.exp = exp;
@@ -140,6 +147,10 @@ impl Claims {
 
 	pub fn id(&self) -> Uuid {
 		self.jti
+	}
+
+	pub fn expires_in(&self) -> i64 {
+		(self.exp - Utc::now()).num_seconds()
 	}
 
 	pub fn scopes(&self) -> &str {
@@ -163,6 +174,8 @@ pub enum VerifyJwtError {
 	WrongClient,
 	#[error("The given audience parameter does not contain this issuer")]
 	BadAudience,
+	#[error("The redirect URI doesn't match what's in the token")]
+	IncorrectRedirectUri,
 	#[error("The token is expired")]
 	ExpiredToken,
 	#[error("The token cannot be used yet")]
@@ -211,16 +224,23 @@ fn verify_jwt(
 }
 
 pub async fn verify_auth_code<'c>(
-	db: MySqlPool,
+	db: &MySqlPool,
 	token: &str,
 	self_id: Url,
 	client_id: Uuid,
+	redirect_uri: Url,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let claims = verify_jwt(token, self_id, client_id)?;
 
-	if db::delete_auth_code(&db, claims.jti).await? {
-		db::delete_access_tokens_with_auth_code(&db, claims.jti).await?;
-		db::revoke_refresh_tokens_with_auth_code(&db, claims.jti).await?;
+	if let Some(claimed_uri) = &claims.redirect_uri {
+		if claimed_uri.clone() != redirect_uri {
+			yeet!(VerifyJwtError::IncorrectRedirectUri.into());
+		}
+	}
+
+	if db::delete_auth_code(db, claims.jti).await? {
+		db::delete_access_tokens_with_auth_code(db, claims.jti).await?;
+		db::revoke_refresh_tokens_with_auth_code(db, claims.jti).await?;
 		yeet!(VerifyJwtError::JwtRevoked.into());
 	}
 

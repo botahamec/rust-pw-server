@@ -262,57 +262,6 @@
     },
     "query": "DELETE FROM refresh_tokens WHERE exp < ?"
   },
-  "4e98a6a157a30d9da7621af79845d653ab29eabed1346cd2be60258d8841929d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id: Uuid",
-          "ordinal": 0,
-          "type_info": {
-            "char_set": 63,
-            "flags": {
-              "bits": 4231
-            },
-            "max_size": 16,
-            "type": "String"
-          }
-        },
-        {
-          "name": "alias",
-          "ordinal": 1,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4101
-            },
-            "max_size": 1020,
-            "type": "VarString"
-          }
-        },
-        {
-          "name": "client_type: ClientType",
-          "ordinal": 2,
-          "type_info": {
-            "char_set": 224,
-            "flags": {
-              "bits": 4097
-            },
-            "max_size": 180,
-            "type": "VarString"
-          }
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Right": 1
-      }
-    },
-    "query": "SELECT id as `id: Uuid`,\n\t\t         alias,\n\t\t\t\t type as `client_type: ClientType`\n\t\t  FROM clients WHERE id = ?"
-  },
   "4faa455ac38672dd2f3f29287125d772aae6956d7a3c0e67d31597e09778e1ee": {
     "describe": {
       "columns": [],
@@ -322,6 +271,66 @@
       }
     },
     "query": "DELETE FROM auth_codes WHERE exp < ?"
+  },
+  "5ae6b0a1174e5735cb3ea5b073f4d1877f7552ac0a6df54c978fcad9e87d5f9b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "allowed_scopes",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 67108860,
+            "type": "Blob"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT allowed_scopes FROM clients WHERE id = ?"
+  },
+  "5c1a88c154b6e69bb53aee7d0beafbfe7519592f51579d7880117fa52b7be315": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 8
+      }
+    },
+    "query": "INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version, allowed_scopes, default_scopes)\n\t\t\t\t\t   VALUES ( ?,     ?,    ?,           ?,           ?,              ?,              ?,              ?)"
+  },
+  "5f3a2ca5d0f61a806ca58195ebbb051758302ed0d376875c671a0aaddb448224": {
+    "describe": {
+      "columns": [
+        {
+          "name": "default_scopes",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 67108860,
+            "type": "Blob"
+          }
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT default_scopes FROM clients WHERE id = ?"
   },
   "64bd64c1c6b272fdd47d12e928be89f2eb69cc0a9f904402d038616b460c8553": {
     "describe": {
@@ -428,6 +437,16 @@
     },
     "query": "DELETE FROM auth_codes WHERE jti = ?"
   },
+  "7b6de4c923629669f449f91fe17679c8654a6ce9c1238b07dcec2cdb7fcdf18d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "UPDATE clients SET allowed_scopes = ? WHERE id = ?"
+  },
   "866d1d42c698528f0195a0c2fc7c971ca1a140802dd205bd9918bdcc08fe377b": {
     "describe": {
       "columns": [],
@@ -493,16 +512,6 @@
     },
     "query": "SELECT EXISTS(SELECT jti FROM auth_codes WHERE jti = ?) as `e: bool`"
   },
-  "970643c05b6189e1277cfd695492dd3706e0c30615e64812cbd29246ada36bb7": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 6
-      }
-    },
-    "query": "INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version)\n\t\t\t\t\t   VALUES ( ?,     ?,    ?,           ?,           ?,              ?)"
-  },
   "9710cd5915616165c6d27031b21cc7b3cfbd5aae574eb07797dca57064880ef9": {
     "describe": {
       "columns": [],
@@ -512,6 +521,26 @@
       }
     },
     "query": "UPDATE users SET username = ? WHERE id = ?"
+  },
+  "981d6ca67138bfa4377025ff560f53fd77edcb9bed0d7f0cfb3468357ea5f1fe": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 8
+      }
+    },
+    "query": "UPDATE clients SET\n\t\talias = ?,\n\t\ttype = ?,\n\t\tsecret_hash = ?,\n\t\tsecret_salt = ?,\n\t\tsecret_version = ?,\n\t\tallowed_scopes = ?,\n\t\tdefault_scopes = ?\n\t\tWHERE id = ?"
+  },
+  "983348e316c3c8c11f9f5cf0479170d4d7246696010302a472267caeb5d2b62d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Right": 2
+      }
+    },
+    "query": "UPDATE clients SET default_scopes = ? WHERE id = ?"
   },
   "a5d7e7e4a36cb1bb0675ccde12dadd013ae2c847648b3274494e206b14cc1370": {
     "describe": {
@@ -625,6 +654,57 @@
     },
     "query": "SELECT EXISTS(SELECT id FROM users WHERE username = ?) as \"e: bool\""
   },
+  "b765470e11aa3a02586b0ea0a65f1bb93f104afde56fb2d77b2c72a8742fb9e0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "secret_hash",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 144
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "secret_salt",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 144
+            },
+            "max_size": 255,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "secret_version",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 32
+            },
+            "max_size": 10,
+            "type": "Long"
+          }
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT secret_hash, secret_salt, secret_version\n\t\tFROM clients WHERE id = ?"
+  },
   "c61516c0c3d51f322a8207581802c2c9723a65beeaeae558d997590dc9e88ef2": {
     "describe": {
       "columns": [
@@ -709,6 +789,108 @@
       }
     },
     "query": "UPDATE users SET\n\t\tpassword_hash = ?,\n\t\tpassword_salt = ?,\n\t\tpassword_version = ?\n\t\tWHERE id = ?"
+  },
+  "e757406f5b996a1204700cd4840ac2c5d1e09b82e13aa98d6dc017da81c059e0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id: Uuid",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        },
+        {
+          "name": "alias",
+          "ordinal": 1,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4101
+            },
+            "max_size": 1020,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "client_type: ClientType",
+          "ordinal": 2,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4097
+            },
+            "max_size": 180,
+            "type": "VarString"
+          }
+        },
+        {
+          "name": "allowed_scopes",
+          "ordinal": 3,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 4113
+            },
+            "max_size": 67108860,
+            "type": "Blob"
+          }
+        },
+        {
+          "name": "default_scopes",
+          "ordinal": 4,
+          "type_info": {
+            "char_set": 224,
+            "flags": {
+              "bits": 16
+            },
+            "max_size": 67108860,
+            "type": "Blob"
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id as `id: Uuid`,\n\t\t         alias,\n\t\t\t\t type as `client_type: ClientType`,\n\t\t\t\t allowed_scopes,\n\t\t\t\t default_scopes\n\t\t  FROM clients WHERE id = ?"
+  },
+  "f39c1d0c05c8cba9f31aa7365b36eff3c258eb6f554be456600f79b925a808d6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id: Uuid",
+          "ordinal": 0,
+          "type_info": {
+            "char_set": 63,
+            "flags": {
+              "bits": 4231
+            },
+            "max_size": 16,
+            "type": "String"
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Right": 1
+      }
+    },
+    "query": "SELECT id as `id: Uuid` FROM clients WHERE alias = ?"
   },
   "f488b319d6f387db08fb49920ddb381b2b1496605914275cd1ccd81c9420b23c": {
     "describe": {
@@ -796,16 +978,6 @@
       }
     },
     "query": "UPDATE clients SET secret_hash = ?, secret_salt = ?, secret_version = ? WHERE id = ?"
-  },
-  "f88f4fead2c0aeba318dd45546d5321271cdc1cb4f3b39576087b73a1024b78a": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Right": 6
-      }
-    },
-    "query": "UPDATE clients SET\n\t\talias = ?,\n\t\ttype = ?,\n\t\tsecret_hash = ?,\n\t\tsecret_salt = ?,\n\t\tsecret_version = ?\n\t\tWHERE id = ?"
   },
   "f9d2c85bdcc3b7d0d1fca4e2f0bb37df6dee23bc50af97d8e4112baacd6eb7c9": {
     "describe": {
