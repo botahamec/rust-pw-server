@@ -81,7 +81,7 @@ pub async fn create_auth_code<'c>(
 pub async fn create_access_token<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	jti: Uuid,
-	auth_code: Uuid,
+	auth_code: Option<Uuid>,
 	exp: DateTime<Utc>,
 ) -> Result<(), sqlx::Error> {
 	query!(
@@ -100,7 +100,7 @@ pub async fn create_access_token<'c>(
 pub async fn create_refresh_token<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	jti: Uuid,
-	auth_code: Uuid,
+	auth_code: Option<Uuid>,
 	exp: DateTime<Utc>,
 ) -> Result<(), sqlx::Error> {
 	query!(

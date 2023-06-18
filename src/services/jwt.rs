@@ -30,8 +30,8 @@ pub struct Claims {
 	jti: Uuid,
 	scope: Box<str>,
 	client_id: Uuid,
-	auth_code_id: Uuid,
 	token_type: TokenType,
+	auth_code_id: Option<Uuid>,
 	redirect_uri: Option<Url>,
 }
 
@@ -67,7 +67,7 @@ impl Claims {
 			jti: id,
 			scope: scopes.into(),
 			client_id,
-			auth_code_id: id,
+			auth_code_id: Some(id),
 			token_type: TokenType::Authorization,
 			redirect_uri: Some(redirect_uri.clone()),
 		})
@@ -75,7 +75,7 @@ impl Claims {
 
 	pub async fn access_token<'c>(
 		db: &MySqlPool,
-		auth_code_id: Uuid,
+		auth_code_id: Option<Uuid>,
 		self_id: Url,
 		client_id: Uuid,
 		duration: Duration,
