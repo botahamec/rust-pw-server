@@ -44,8 +44,17 @@ struct AuthorizeCredentials {
 }
 
 #[derive(Clone, Serialize)]
-struct CodeResponse {
+struct AuthCodeResponse {
 	code: Box<str>,
+	state: Option<Box<str>>,
+}
+
+#[derive(Clone, Serialize)]
+struct AuthTokenResponse {
+	access_token: Box<str>,
+	token_type: &'static str,
+	expires_in: i64,
+	scope: Box<str>,
 	state: Option<Box<str>>,
 }
 
@@ -61,13 +70,14 @@ enum AuthorizeErrorType {
 	TemporarilyUnavailable,
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Clone, Error, Serialize)]
 #[error("{error_description}")]
 struct AuthorizeError {
 	error: AuthorizeErrorType,
 	error_description: Box<str>,
 	// TODO error uri
 	state: Option<Box<str>>,
+	#[serde(skip)]
 	redirect_uri: Url,
 }
 
@@ -86,15 +96,10 @@ impl AuthorizeError {
 
 impl ResponseError for AuthorizeError {
 	fn error_response(&self) -> HttpResponse<actix_web::body::BoxBody> {
-		let error = serde_variant::to_variant_name(&self.error).unwrap_or_default();
+		let query = Some(serde_urlencoded::to_string(self).unwrap());
+		let query = query.as_deref();
 		let mut url = self.redirect_uri.clone();
-		url.query_pairs_mut()
-			.append_pair("error", error)
-			.append_pair("error_description", &self.error_description);
-
-		if let Some(state) = &self.state {
-			url.query_pairs_mut().append_pair("state", &state);
-		}
+		url.set_query(query);
 
 		HttpResponse::Found()
 			.insert_header((header::LOCATION, url.as_str()))
@@ -109,6 +114,7 @@ async fn authorize(
 	credentials: web::Json<AuthorizeCredentials>,
 ) -> HttpResponse {
 	// TODO use sessions to verify that the request was previously validated
+	// TODO handle internal server error
 	let db = db.get_ref();
 	let Some(client_id) = db::get_client_id_by_alias(db, &req.client_id).await.unwrap() else {
 		todo!("client not found")
@@ -117,7 +123,7 @@ async fn authorize(
 	let state = req.state.clone();
 
 	// get redirect uri
-	let redirect_uri = if let Some(redirect_uri) = &req.redirect_uri {
+	let mut redirect_uri = if let Some(redirect_uri) = &req.redirect_uri {
 		redirect_uri.clone()
 	} else {
 		let redirect_uris = db::get_client_redirect_uris(db, client_id).await.unwrap();
@@ -157,11 +163,43 @@ async fn authorize(
 				.await
 				.unwrap();
 			let code = code.to_jwt().unwrap();
-			let response = CodeResponse { code, state };
 
-			HttpResponse::Ok().json(response)
+			let response = AuthCodeResponse { code, state };
+			let query = Some(serde_urlencoded::to_string(response).unwrap());
+			let query = query.as_deref();
+			redirect_uri.set_query(query);
+
+			HttpResponse::Found()
+				.append_header((header::LOCATION, redirect_uri.as_str()))
+				.finish()
 		}
-		ResponseType::Token => todo!(),
+		ResponseType::Token => {
+			// create access token
+			let duration = Duration::hours(1);
+			let access_token =
+				jwt::Claims::access_token(db, None, self_id, client_id, duration, &scope)
+					.await
+					.unwrap();
+
+			let access_token = access_token.to_jwt().unwrap();
+			let expires_in = duration.num_seconds();
+			let token_type = "bearer";
+			let response = AuthTokenResponse {
+				access_token,
+				expires_in,
+				token_type,
+				scope,
+				state,
+			};
+
+			let fragment = Some(serde_urlencoded::to_string(response).unwrap());
+			let fragment = fragment.as_deref();
+			redirect_uri.set_fragment(fragment);
+
+			HttpResponse::Found()
+				.append_header((header::LOCATION, redirect_uri.as_str()))
+				.finish()
+		}
 		_ => todo!("unsupported response type"),
 	}
 }
