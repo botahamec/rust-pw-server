@@ -33,3 +33,4 @@ sqlx = { version = "0.6", features = [ "runtime-actix-rustls", "mysql", "uuid", 
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 hex = "0.4"
+serde_variant = "0.1"

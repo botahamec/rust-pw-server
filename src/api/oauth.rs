@@ -131,12 +131,18 @@ async fn authorize(
 	db: web::Data<MySqlPool>,
 	req: web::Query<AuthorizationParameters>,
 	credentials: web::Json<AuthorizeCredentials>,
+	tera: web::Data<Tera>,
+	translations: web::Data<languages::Translations>,
 ) -> HttpResponse {
 	// TODO use sessions to verify that the request was previously validated
 	// TODO handle internal server error
 	let db = db.get_ref();
 	let Some(client_id) = db::get_client_id_by_alias(db, &req.client_id).await.unwrap() else {
-		todo!("client not found")
+		// TODO find a better way of doing languages
+		let language = Language::from_str("en").unwrap();
+		let translations = translations.get_ref().clone();
+		let page = templates::error_page(&tera, language, translations, templates::ErrorPage::ClientNotFound).unwrap();
+		return HttpResponse::NotFound().content_type("text/html").body(page);
 	};
 	let self_id = Url::parse("www.google.com").unwrap(); // TODO find the actual value
 	let state = req.state.clone();
@@ -147,7 +153,18 @@ async fn authorize(
 	} else {
 		let redirect_uris = db::get_client_redirect_uris(db, client_id).await.unwrap();
 		if redirect_uris.len() != 1 {
-			todo!("no redirect uri");
+			let language = Language::from_str("en").unwrap();
+			let translations = translations.get_ref().clone();
+			let page = templates::error_page(
+				&tera,
+				language,
+				translations,
+				templates::ErrorPage::MissingRedirectUri,
+			)
+			.unwrap();
+			return HttpResponse::NotFound()
+				.content_type("text/html")
+				.body(page);
 		}
 
 		redirect_uris[0].clone()
@@ -230,21 +247,44 @@ async fn authorize_page(
 	translations: web::Data<languages::Translations>,
 	request: HttpRequest,
 ) -> HttpResponse {
+	// TODO handle internal server error
+	let language = Language::from_str("en").unwrap();
+	let translations = translations.get_ref().clone();
+
 	let params = request.query_string();
 	let params = serde_urlencoded::from_str::<AuthorizationParameters>(params);
 	let Ok(params) = params else {
-		todo!("invalid request")
+		let page = templates::error_page(
+			&tera,
+			language,
+			translations,
+			templates::ErrorPage::InvalidRequest,
+		)
+		.unwrap();
+		return HttpResponse::BadRequest()
+			.content_type("text/html")
+			.body(page);
 	};
 
 	let db = db.get_ref();
 	let Some(client_id) = db::get_client_id_by_alias(db, &params.client_id).await.unwrap() else {
-		todo!("client not found")
+		let page = templates::error_page(
+			&tera,
+			language,
+			translations,
+			templates::ErrorPage::ClientNotFound,
+		)
+		.unwrap();
+		return HttpResponse::NotFound()
+			.content_type("text/html")
+			.body(page);
 	};
 
 	// verify scope
-	let Some(allowed_scopes) = db::get_client_allowed_scopes(db, client_id).await.unwrap() else {
-		todo!("client not found")
-	};
+	let allowed_scopes = db::get_client_allowed_scopes(db, client_id)
+		.await
+		.unwrap()
+		.unwrap();
 
 	// verify redirect uri
 	let redirect_uri: Url;
@@ -254,12 +294,30 @@ async fn authorize_page(
 			.await
 			.unwrap()
 		{
-			todo!("access denied")
+			let page = templates::error_page(
+				&tera,
+				language,
+				translations,
+				templates::ErrorPage::InvalidRedirectUri,
+			)
+			.unwrap();
+			return HttpResponse::BadRequest()
+				.content_type("text/html")
+				.body(page);
 		}
 	} else {
 		let redirect_uris = db::get_client_redirect_uris(db, client_id).await.unwrap();
 		if redirect_uris.len() != 1 {
-			todo!("must have redirect uri")
+			let page = templates::error_page(
+				&tera,
+				language,
+				translations,
+				templates::ErrorPage::MissingRedirectUri,
+			)
+			.unwrap();
+			return HttpResponse::NotFound()
+				.content_type("text/html")
+				.body(page);
 		}
 
 		redirect_uri = redirect_uris.get(0).unwrap().clone();
@@ -290,8 +348,7 @@ async fn authorize_page(
 
 	// TODO find a better way of doing languages
 	let language = Language::from_str("en").unwrap();
-	let page =
-		templates::login_page(&tera, &params, language, translations.get_ref().clone()).unwrap();
+	let page = templates::login_page(&tera, &params, language, translations).unwrap();
 	HttpResponse::Ok().content_type("text/html").body(page)
 }
 
