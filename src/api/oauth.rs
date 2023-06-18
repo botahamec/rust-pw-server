@@ -236,7 +236,7 @@ async fn authorize(
 				.append_header((header::LOCATION, redirect_uri.as_str()))
 				.finish()
 		}
-		_ => todo!("unsupported response type"),
+		_ => AuthorizeError::invalid_scope(redirect_uri, state).error_response(),
 	}
 }
 
@@ -460,6 +460,14 @@ impl TokenError {
 		}
 	}
 
+	fn mismatch_client_id() -> Self {
+		Self {
+			status_code: StatusCode::UNAUTHORIZED,
+			error: TokenErrorType::InvalidClient,
+			error_description: Box::from("The client ID in the Authorization header is not the same as the client ID in the request body"),
+		}
+	}
+
 	fn incorrect_client_secret() -> Self {
 		Self {
 			status_code: StatusCode::UNAUTHORIZED,
@@ -570,7 +578,7 @@ async fn token(
 				};
 
 				if authorization.username() != client_alias.deref() {
-					todo!("bad username")
+					return TokenError::mismatch_client_id().error_response();
 				}
 				if !hash.check_password(authorization.password()).unwrap() {
 					return TokenError::incorrect_client_secret().error_response();
