@@ -92,6 +92,24 @@ impl AuthorizeError {
 			redirect_uri,
 		}
 	}
+
+	fn unsupported_response_type(redirect_uri: Url, state: Option<Box<str>>) -> Self {
+		Self {
+			error: AuthorizeErrorType::UnsupportedResponseType,
+			error_description: Box::from("The given response type is not supported"),
+			state,
+			redirect_uri,
+		}
+	}
+
+	fn invalid_scope(redirect_uri: Url, state: Option<Box<str>>) -> Self {
+		Self {
+			error: AuthorizeErrorType::InvalidScope,
+			error_description: Box::from("The given scope exceeds what the client is allowed"),
+			state,
+			redirect_uri,
+		}
+	}
 }
 
 impl ResponseError for AuthorizeError {
@@ -227,26 +245,11 @@ async fn authorize_page(
 		todo!("client not found")
 	};
 
-	let scope = if let Some(scope) = &params.scope {
-		scope.clone()
-	} else {
-		let default_scopes = db::get_client_default_scopes(db, client_id)
-			.await
-			.unwrap()
-			.unwrap();
-		let Some(scope) = default_scopes else {
-			todo!("invalid request")
-		};
-		scope
-	};
-
-	if !scopes::is_subset_of(&scope, &allowed_scopes) {
-		todo!("access_denied")
-	}
-
 	// verify redirect uri
-	if let Some(redirect_uri) = &params.redirect_uri {
-		if !db::client_has_redirect_uri(db, client_id, redirect_uri)
+	let redirect_uri: Url;
+	if let Some(uri) = &params.redirect_uri {
+		redirect_uri = uri.clone();
+		if !db::client_has_redirect_uri(db, client_id, &redirect_uri)
 			.await
 			.unwrap()
 		{
@@ -257,11 +260,31 @@ async fn authorize_page(
 		if redirect_uris.len() != 1 {
 			todo!("must have redirect uri")
 		}
+
+		redirect_uri = redirect_uris.get(0).unwrap().clone();
+	}
+
+	let scope = if let Some(scope) = &params.scope {
+		scope.clone()
+	} else {
+		let default_scopes = db::get_client_default_scopes(db, client_id)
+			.await
+			.unwrap()
+			.unwrap();
+		let Some(scope) = default_scopes else {
+			return AuthorizeError::no_scope(redirect_uri, params.state).error_response();
+		};
+		scope
+	};
+
+	if !scopes::is_subset_of(&scope, &allowed_scopes) {
+		return AuthorizeError::invalid_scope(redirect_uri, params.state).error_response();
 	}
 
 	// verify response type
 	if params.response_type == ResponseType::Unsupported {
-		todo!("unsupported response type")
+		return AuthorizeError::unsupported_response_type(redirect_uri, params.state)
+			.error_response();
 	}
 
 	// TODO find a better way of doing languages
