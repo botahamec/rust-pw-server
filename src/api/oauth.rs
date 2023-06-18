@@ -12,6 +12,7 @@ use tera::Tera;
 use thiserror::Error;
 use unic_langid::subtags::Language;
 use url::Url;
+use uuid::Uuid;
 
 use crate::models::client::ClientType;
 use crate::resources::{languages, templates};
@@ -312,6 +313,10 @@ enum GrantType {
 	ClientCredentials {
 		scope: Option<Box<str>>,
 	},
+	RefreshToken {
+		refresh_token: Box<str>,
+		scope: Option<Box<str>>,
+	},
 	#[serde(other)]
 	Unsupported,
 }
@@ -432,6 +437,14 @@ impl TokenError {
 			error_description: Box::from(
 				"The given scope exceeds what the client is allowed to have",
 			),
+		}
+	}
+
+	fn bad_refresh_token(err: VerifyJwtError) -> Self {
+		Self {
+			status_code: StatusCode::BAD_REQUEST,
+			error: TokenErrorType::InvalidGrant,
+			error_description: err.to_string().into_boxed_str(),
 		}
 	}
 }
@@ -597,6 +610,62 @@ async fn token(
 				token_type,
 				expires_in,
 				refresh_token: None,
+				scope,
+			};
+			HttpResponse::Ok()
+				.insert_header(cache_control)
+				.insert_header((header::PRAGMA, "no-cache"))
+				.json(response)
+		}
+		GrantType::RefreshToken {
+			refresh_token,
+			scope,
+		} => {
+			let client_id: Option<Uuid>;
+			if let Some(authorization) = authorization {
+				let client_alias = authorization.username();
+				let Some(id) = db::get_client_id_by_alias(db, client_alias).await.unwrap() else {
+					return TokenError::client_not_found(client_alias).error_response();
+				};
+				client_id = Some(id);
+			} else {
+				client_id = None;
+			}
+
+			let claims =
+				match jwt::verify_refresh_token(db, &refresh_token, self_id, client_id).await {
+					Ok(claims) => claims,
+					Err(e) => {
+						let e = e.unwrap();
+						return TokenError::bad_refresh_token(e).error_response();
+					}
+				};
+
+			let scope = if let Some(scope) = scope {
+				if !scopes::is_subset_of(&scope, claims.scopes()) {
+					return TokenError::excessive_scope().error_response();
+				}
+
+				scope
+			} else {
+				claims.scopes().into()
+			};
+
+			let exp_time = Duration::hours(1);
+			let access_token = jwt::Claims::refreshed_access_token(db, &claims, exp_time)
+				.await
+				.unwrap();
+			let refresh_token = jwt::Claims::refresh_token(db, &claims).await.unwrap();
+
+			let access_token = access_token.to_jwt().unwrap();
+			let refresh_token = Some(refresh_token.to_jwt().unwrap());
+			let expires_in = exp_time.num_seconds();
+
+			let response = TokenResponse {
+				access_token,
+				token_type,
+				expires_in,
+				refresh_token,
 				scope,
 			};
 			HttpResponse::Ok()

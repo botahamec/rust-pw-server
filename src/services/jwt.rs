@@ -127,7 +127,7 @@ impl Claims {
 
 	pub async fn refreshed_access_token(
 		db: &MySqlPool,
-		refresh_token: Claims,
+		refresh_token: &Claims,
 		exp_time: Duration,
 	) -> Result<Self, RawUnexpected> {
 		let id = new_id(db, db::access_token_exists).await?;
@@ -136,7 +136,7 @@ impl Claims {
 
 		db::create_access_token(db, id, refresh_token.auth_code_id, exp).await?;
 
-		let mut claims = refresh_token;
+		let mut claims = refresh_token.clone();
 		claims.exp = exp;
 		claims.iat = Some(time);
 		claims.jti = id;
@@ -187,7 +187,7 @@ pub enum VerifyJwtError {
 fn verify_jwt(
 	token: &str,
 	self_id: Url,
-	client_id: Uuid,
+	client_id: Option<Uuid>,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let key = secrets::signing_key()?;
 	let claims: Claims = token
@@ -198,8 +198,10 @@ fn verify_jwt(
 		yeet!(VerifyJwtError::IncorrectIssuer.into())
 	}
 
-	if claims.client_id != client_id {
-		yeet!(VerifyJwtError::WrongClient.into())
+	if let Some(client_id) = client_id {
+		if claims.client_id != client_id {
+			yeet!(VerifyJwtError::WrongClient.into())
+		}
 	}
 
 	if let Some(aud) = claims.aud.clone() {
@@ -230,7 +232,7 @@ pub async fn verify_auth_code<'c>(
 	client_id: Uuid,
 	redirect_uri: Url,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
-	let claims = verify_jwt(token, self_id, client_id)?;
+	let claims = verify_jwt(token, self_id, Some(client_id))?;
 
 	if let Some(claimed_uri) = &claims.redirect_uri {
 		if claimed_uri.clone() != redirect_uri {
@@ -253,7 +255,7 @@ pub async fn verify_access_token<'c>(
 	self_id: Url,
 	client_id: Uuid,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
-	let claims = verify_jwt(token, self_id, client_id)?;
+	let claims = verify_jwt(token, self_id, Some(client_id))?;
 
 	if !db::access_token_exists(db, claims.jti).await? {
 		yeet!(VerifyJwtError::JwtRevoked.into())
@@ -266,7 +268,7 @@ pub async fn verify_refresh_token<'c>(
 	db: impl Executor<'c, Database = MySql>,
 	token: &str,
 	self_id: Url,
-	client_id: Uuid,
+	client_id: Option<Uuid>,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let claims = verify_jwt(token, self_id, client_id)?;
 
