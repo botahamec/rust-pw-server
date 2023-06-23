@@ -36,6 +36,7 @@ pub struct Client {
 	allowed_scopes: Box<[Box<str>]>,
 	default_scopes: Option<Box<[Box<str>]>>,
 	redirect_uris: Box<[Url]>,
+	trusted: bool,
 }
 
 impl PartialEq for Client {
@@ -54,21 +55,16 @@ impl Hash for Client {
 
 #[derive(Debug, Clone, Copy, Error)]
 #[error("Confidential clients must have a secret, but it was not provided")]
-pub struct NoSecretError {
-	_phantom: PhantomData<()>,
+pub enum CreateClientError {
+	#[error("Confidential clients must have a secret, but it was not provided")]
+	NoSecret,
+	#[error("Only confidential clients may be trusted")]
+	TrustedError,
 }
 
-impl ResponseError for NoSecretError {
+impl ResponseError for CreateClientError {
 	fn status_code(&self) -> StatusCode {
 		StatusCode::BAD_REQUEST
-	}
-}
-
-impl NoSecretError {
-	pub(crate) fn new() -> Self {
-		Self {
-			_phantom: PhantomData,
-		}
 	}
 }
 
@@ -81,7 +77,8 @@ impl Client {
 		allowed_scopes: Box<[Box<str>]>,
 		default_scopes: Option<Box<[Box<str>]>>,
 		redirect_uris: &[Url],
-	) -> Result<Self, Expect<NoSecretError>> {
+		trusted: bool,
+	) -> Result<Self, Expect<CreateClientError>> {
 		let secret = if let Some(secret) = secret {
 			Some(PasswordHash::new(secret)?)
 		} else {
@@ -89,17 +86,22 @@ impl Client {
 		};
 
 		if ty == ClientType::Confidential && secret.is_none() {
-			yeet!(NoSecretError::new().into());
+			yeet!(CreateClientError::NoSecret.into());
+		}
+
+		if ty == ClientType::Public && trusted {
+			yeet!(CreateClientError::TrustedError.into());
 		}
 
 		Ok(Self {
 			id,
 			alias: Box::from(alias),
-			ty: ClientType::Public,
+			ty,
 			secret,
 			allowed_scopes,
 			default_scopes,
 			redirect_uris: redirect_uris.into_iter().cloned().collect(),
+			trusted,
 		})
 	}
 
@@ -137,6 +139,10 @@ impl Client {
 
 	pub fn default_scopes(&self) -> Option<String> {
 		self.default_scopes.clone().map(|s| s.join(" "))
+	}
+
+	pub fn is_trusted(&self) -> bool {
+		self.trusted
 	}
 
 	pub fn check_secret(&self, secret: &str) -> Option<Result<bool, RawUnexpected>> {

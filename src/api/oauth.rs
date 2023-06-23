@@ -512,6 +512,14 @@ impl TokenError {
 			error_description: err.to_string().into_boxed_str(),
 		}
 	}
+
+	fn untrusted_client() -> Self {
+		Self {
+			status_code: StatusCode::UNAUTHORIZED,
+			error: TokenErrorType::InvalidClient,
+			error_description: "Only trusted clients may use this grant".into(),
+		}
+	}
 }
 
 impl ResponseError for TokenError {
@@ -619,7 +627,70 @@ async fn token(
 			username,
 			password,
 			scope,
-		} => todo!(),
+		} => {
+			let Some(authorization) = authorization else {
+				return TokenError::no_authorization().error_response();
+			};
+			let client_alias = authorization.username();
+			let Some(client_id) = db::get_client_id_by_alias(db, client_alias).await.unwrap() else {
+				return TokenError::client_not_found(client_alias).error_response();
+			};
+
+			let trusted = db::is_client_trusted(db, client_id).await.unwrap().unwrap();
+			if !trusted {
+				return TokenError::untrusted_client().error_response();
+			}
+
+			// verify client
+			let hash = db::get_client_secret(db, client_id).await.unwrap().unwrap();
+			if !hash.check_password(authorization.password()).unwrap() {
+				return TokenError::incorrect_client_secret().error_response();
+			}
+
+			// verify scope
+			let allowed_scopes = db::get_client_allowed_scopes(db, client_id)
+				.await
+				.unwrap()
+				.unwrap();
+			let scope = if let Some(scope) = &scope {
+				scope.clone()
+			} else {
+				let default_scopes = db::get_client_default_scopes(db, client_id)
+					.await
+					.unwrap()
+					.unwrap();
+				let Some(scope) = default_scopes else {
+					return TokenError::no_scope().error_response();
+				};
+				scope
+			};
+			if !scopes::is_subset_of(&scope, &allowed_scopes) {
+				return TokenError::excessive_scope().error_response();
+			}
+
+			let access_token =
+				jwt::Claims::access_token(db, None, self_id, client_id, duration, &scope)
+					.await
+					.unwrap();
+			let refresh_token = jwt::Claims::refresh_token(db, &access_token).await.unwrap();
+
+			let expires_in = access_token.expires_in();
+			let scope = access_token.scopes().into();
+			let access_token = access_token.to_jwt().unwrap();
+			let refresh_token = Some(refresh_token.to_jwt().unwrap());
+
+			let response = TokenResponse {
+				access_token,
+				token_type,
+				expires_in,
+				refresh_token,
+				scope,
+			};
+			HttpResponse::Ok()
+				.insert_header(cache_control)
+				.insert_header((header::PRAGMA, "no-cache"))
+				.json(response)
+		}
 		GrantType::ClientCredentials { scope } => {
 			let Some(authorization) = authorization else {
 				return TokenError::no_authorization().error_response();

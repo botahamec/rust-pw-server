@@ -19,6 +19,7 @@ pub struct ClientRow {
 	pub client_type: ClientType,
 	pub allowed_scopes: String,
 	pub default_scopes: Option<String>,
+	pub is_trusted: bool,
 }
 
 #[derive(Clone, FromRow)]
@@ -77,7 +78,8 @@ pub async fn get_client_response<'c>(
 		         alias,
 				 type as `client_type: ClientType`,
 				 allowed_scopes,
-				 default_scopes
+				 default_scopes,
+				 trusted as `is_trusted: bool`
 		  FROM clients WHERE id = ?",
 		id
 	)
@@ -156,6 +158,16 @@ pub async fn get_client_secret<'c>(
 
 	let hash = PasswordHash::from_fields(&hash, &salt, version as u8);
 	Ok(Some(hash))
+}
+
+pub async fn is_client_trusted<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+) -> Result<Option<bool>, RawUnexpected> {
+	query_scalar!("SELECT trusted as `t: bool` FROM clients WHERE id = ?", id)
+		.fetch_optional(executor)
+		.await
+		.unexpect()
 }
 
 pub async fn get_client_redirect_uris<'c>(
@@ -322,6 +334,20 @@ pub async fn update_client_default_scopes<'c>(
 	query!(
 		"UPDATE clients SET default_scopes = ? WHERE id = ?",
 		default_scopes,
+		id
+	)
+	.execute(executor)
+	.await
+}
+
+pub async fn update_client_trusted<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	id: Uuid,
+	is_trusted: bool,
+) -> Result<MySqlQueryResult, sqlx::Error> {
+	query!(
+		"UPDATE clients SET trusted = ? WHERE id = ?",
+		is_trusted,
 		id
 	)
 	.execute(executor)

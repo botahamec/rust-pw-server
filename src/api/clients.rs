@@ -7,7 +7,7 @@ use thiserror::Error;
 use url::Url;
 use uuid::Uuid;
 
-use crate::models::client::{Client, ClientType, NoSecretError};
+use crate::models::client::{Client, ClientType, CreateClientError};
 use crate::services::crypto::PasswordHash;
 use crate::services::db::ClientRow;
 use crate::services::{db, id};
@@ -20,6 +20,7 @@ struct ClientResponse {
 	client_type: ClientType,
 	allowed_scopes: Box<[Box<str>]>,
 	default_scopes: Option<Box<[Box<str>]>>,
+	is_trusted: bool,
 }
 
 impl From<ClientRow> for ClientResponse {
@@ -36,6 +37,7 @@ impl From<ClientRow> for ClientResponse {
 			default_scopes: value
 				.default_scopes
 				.map(|s| s.split_whitespace().map(Box::from).collect()),
+			is_trusted: value.is_trusted,
 		}
 	}
 }
@@ -164,6 +166,21 @@ async fn get_client_default_scopes(
 	Ok(HttpResponse::Ok().json(default_scopes))
 }
 
+#[get("/{client_id}/is-trusted")]
+async fn get_client_is_trusted(
+	client_id: web::Path<Uuid>,
+	db: web::Data<MySqlPool>,
+) -> Result<HttpResponse, ClientNotFound> {
+	let db = db.as_ref();
+	let id = *client_id;
+
+	let Some(is_trusted) = db::is_client_trusted(db, id).await.unwrap() else {
+		yeet!(ClientNotFound::new(id))
+	};
+
+	Ok(HttpResponse::Ok().json(is_trusted))
+}
+
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ClientRequest {
@@ -173,6 +190,7 @@ struct ClientRequest {
 	secret: Option<Box<str>>,
 	allowed_scopes: Box<[Box<str>]>,
 	default_scopes: Option<Box<[Box<str>]>>,
+	trusted: bool,
 }
 
 #[derive(Debug, Clone, Error)]
@@ -216,6 +234,7 @@ async fn create_client(
 		body.allowed_scopes.clone(),
 		body.default_scopes.clone(),
 		&body.redirect_uris,
+		body.trusted,
 	)
 	.map_err(|e| e.unwrap())?;
 
@@ -233,7 +252,7 @@ enum UpdateClientError {
 	#[error(transparent)]
 	NotFound(#[from] ClientNotFound),
 	#[error(transparent)]
-	NoSecret(#[from] NoSecretError),
+	ClientError(#[from] CreateClientError),
 	#[error(transparent)]
 	AliasTaken(#[from] AliasTakenError),
 }
@@ -242,7 +261,7 @@ impl ResponseError for UpdateClientError {
 	fn status_code(&self) -> StatusCode {
 		match self {
 			Self::NotFound(e) => e.status_code(),
-			Self::NoSecret(e) => e.status_code(),
+			Self::ClientError(e) => e.status_code(),
 			Self::AliasTaken(e) => e.status_code(),
 		}
 	}
@@ -273,6 +292,7 @@ async fn update_client(
 		body.allowed_scopes.clone(),
 		body.default_scopes.clone(),
 		&body.redirect_uris,
+		body.trusted,
 	)
 	.map_err(|e| e.unwrap())?;
 
@@ -370,6 +390,25 @@ async fn update_client_default_scopes(
 	Ok(HttpResponse::NoContent().finish())
 }
 
+#[put("/{id}/is-trusted")]
+async fn update_client_is_trusted(
+	id: web::Path<Uuid>,
+	body: web::Json<bool>,
+	db: web::Data<MySqlPool>,
+) -> Result<HttpResponse, UpdateClientError> {
+	let db = db.get_ref();
+	let id = *id;
+	let is_trusted = *body;
+
+	if !db::client_id_exists(db, id).await.unwrap() {
+		yeet!(ClientNotFound::new(id).into());
+	}
+
+	db::update_client_trusted(db, id, is_trusted).await.unwrap();
+
+	Ok(HttpResponse::NoContent().finish())
+}
+
 #[put("/{id}/redirect-uris")]
 async fn update_client_redirect_uris(
 	id: web::Path<Uuid>,
@@ -405,7 +444,7 @@ async fn update_client_secret(
 	};
 
 	if client_type == ClientType::Confidential && body.is_none() {
-		yeet!(NoSecretError::new().into())
+		yeet!(CreateClientError::NoSecret.into())
 	}
 
 	let secret = body.0.map(|s| PasswordHash::new(&s).unwrap());
@@ -422,6 +461,7 @@ pub fn service() -> Scope {
 		.service(get_client_allowed_scopes)
 		.service(get_client_default_scopes)
 		.service(get_client_redirect_uris)
+		.service(get_client_is_trusted)
 		.service(create_client)
 		.service(update_client)
 		.service(update_client_alias)
