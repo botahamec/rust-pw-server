@@ -44,6 +44,7 @@ pub enum ErrorPage {
 	ClientNotFound,
 	MissingRedirectUri,
 	InvalidRedirectUri,
+	InternalServerError,
 }
 
 pub fn error_page(
@@ -80,5 +81,21 @@ pub fn login_page(
 	let mut context = tera::Context::new();
 	context.insert("lang", language.as_str());
 	context.insert("params", &serde_urlencoded::to_string(params)?);
+	tera.render("login.html", &context).unexpect()
+}
+
+pub fn login_error_page(
+	tera: &Tera,
+	params: &AuthorizationParameters,
+	language: Language,
+	mut translations: languages::Translations,
+) -> Result<String, RawUnexpected> {
+	translations.refresh()?;
+	let mut tera = extend_tera(tera, language, translations)?;
+	tera.full_reload()?;
+	let mut context = tera::Context::new();
+	context.insert("lang", language.as_str());
+	context.insert("params", &serde_urlencoded::to_string(params)?);
+	context.insert("errorMessage", "loginErrorMessage");
 	tera.render("login.html", &context).unexpect()
 }

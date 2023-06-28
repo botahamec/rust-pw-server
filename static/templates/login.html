@@ -2,6 +2,9 @@
 {% block title %}{{ msg(key="loginTitle") }}{% endblock title %}
 {% block content %}
 <form method="post" action="/authorize?{{params}}">
+	{% if errorMessage %}
+		<p>{{ msg(key=errorMessage) }}</p>
+	{% endif %}
 	<label for="username">{{ msg(key="usernameLabel") }}</label>
 	<input id="username" type="text" name="username" tabindex="0" placeholder="{{ msg(key="usernamePlaceholder") }}" autofocus />
 	<label for="password">{{ msg(key="passwordLabel") }}</label>
