@@ -1,0 +1,5 @@
+# used to identify the issuer of JWTs
+self_id = "LockDagger"
+
+# The URL which the server is hosted on
+url = "http://localhost:8080"

@@ -20,7 +20,7 @@ use crate::models::client::ClientType;
 use crate::resources::{languages, templates};
 use crate::scopes;
 use crate::services::jwt::VerifyJwtError;
-use crate::services::{authorization, db, jwt};
+use crate::services::{authorization, config, db, jwt};
 
 const REALLY_BAD_ERROR_PAGE: &str = "<!DOCTYPE html><html><head><title>Internal Server Error</title></head><body>Internal Server Error</body></html>";
 
@@ -243,7 +243,12 @@ async fn authorize(
 		let page = error_page(&tera, &translations, templates::ErrorPage::ClientNotFound).unwrap_or_else(|_| String::from(REALLY_BAD_ERROR_PAGE));
 		return HttpResponse::NotFound().content_type("text/html").body(page);
 	};
-	let self_id = Url::parse("www.google.com").unwrap(); // TODO find the actual value
+	let Ok(config) = config::get_config() else {
+		let page = error_page(&tera, &translations, templates::ErrorPage::InternalServerError).unwrap_or_else(|_| String::from(REALLY_BAD_ERROR_PAGE));
+		return HttpResponse::InternalServerError().content_type("text/html").body(page);
+	};
+
+	let self_id = config.id;
 	let state = req.state.clone();
 
 	// get redirect uri
@@ -284,7 +289,7 @@ async fn authorize(
 	match req.response_type {
 		ResponseType::Code => {
 			// create auth code
-			let code = jwt::Claims::auth_code(db, self_id, client_id, &scope, &redirect_uri)
+			let code = jwt::Claims::auth_code(db, &self_id, client_id, &scope, &redirect_uri)
 				.await
 				.unwrap();
 			let code = code.to_jwt().unwrap();
@@ -302,7 +307,7 @@ async fn authorize(
 			// create access token
 			let duration = Duration::hours(1);
 			let access_token =
-				jwt::Claims::access_token(db, None, self_id, client_id, duration, &scope)
+				jwt::Claims::access_token(db, None, &self_id, client_id, duration, &scope)
 					.await
 					.unwrap();
 
@@ -628,8 +633,9 @@ async fn token(
 	let Ok(request) = request else {
 		return TokenError::invalid_request().error_response();
 	};
+	let config = config::get_config().unwrap();
 
-	let self_id = Url::parse("www.google.com").unwrap(); // TODO find the actual value
+	let self_id = config.id;
 	let duration = Duration::hours(1);
 	let token_type = Box::from("bearer");
 	let cache_control = header::CacheControl(vec![header::CacheDirective::NoStore]);
@@ -646,9 +652,7 @@ async fn token(
 
 			// validate auth code
 			let claims =
-				match jwt::verify_auth_code(db, &code, self_id.clone(), client_id, redirect_uri)
-					.await
-				{
+				match jwt::verify_auth_code(db, &code, &self_id, client_id, redirect_uri).await {
 					Ok(claims) => claims,
 					Err(err) => {
 						let err = err.unwrap();
@@ -673,7 +677,7 @@ async fn token(
 			let access_token = jwt::Claims::access_token(
 				db,
 				Some(claims.id()),
-				self_id,
+				&self_id,
 				client_id,
 				duration,
 				claims.scopes(),
@@ -751,7 +755,7 @@ async fn token(
 			}
 
 			let access_token =
-				jwt::Claims::access_token(db, None, self_id, client_id, duration, &scope)
+				jwt::Claims::access_token(db, None, &self_id, client_id, duration, &scope)
 					.await
 					.unwrap();
 			let refresh_token = jwt::Claims::refresh_token(db, &access_token).await.unwrap();
@@ -815,7 +819,7 @@ async fn token(
 			}
 
 			let access_token =
-				jwt::Claims::access_token(db, None, self_id, client_id, duration, &scope)
+				jwt::Claims::access_token(db, None, &self_id, client_id, duration, &scope)
 					.await
 					.unwrap();
 
@@ -851,7 +855,7 @@ async fn token(
 			}
 
 			let claims =
-				match jwt::verify_refresh_token(db, &refresh_token, self_id, client_id).await {
+				match jwt::verify_refresh_token(db, &refresh_token, &self_id, client_id).await {
 					Ok(claims) => claims,
 					Err(e) => {
 						let e = e.unwrap();

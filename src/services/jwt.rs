@@ -19,7 +19,7 @@ pub enum TokenType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-	iss: Url,
+	iss: Box<str>,
 	aud: Option<Box<[String]>>,
 	#[serde(with = "ts_milliseconds")]
 	exp: DateTime<Utc>,
@@ -45,7 +45,7 @@ pub enum RevokedRefreshTokenReason {
 impl Claims {
 	pub async fn auth_code<'c>(
 		db: &MySqlPool,
-		self_id: Url,
+		self_id: &str,
 		client_id: Uuid,
 		scopes: &str,
 		redirect_uri: &Url,
@@ -59,7 +59,7 @@ impl Claims {
 		db::create_auth_code(db, id, exp).await?;
 
 		Ok(Self {
-			iss: self_id,
+			iss: Box::from(self_id),
 			aud: None,
 			exp,
 			nbf: None,
@@ -76,7 +76,7 @@ impl Claims {
 	pub async fn access_token<'c>(
 		db: &MySqlPool,
 		auth_code_id: Option<Uuid>,
-		self_id: Url,
+		self_id: &str,
 		client_id: Uuid,
 		duration: Duration,
 		scopes: &str,
@@ -90,7 +90,7 @@ impl Claims {
 			.unexpect()?;
 
 		Ok(Self {
-			iss: self_id,
+			iss: Box::from(self_id),
 			aud: None,
 			exp,
 			nbf: None,
@@ -186,7 +186,7 @@ pub enum VerifyJwtError {
 
 fn verify_jwt(
 	token: &str,
-	self_id: Url,
+	self_id: &str,
 	client_id: Option<Uuid>,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let key = secrets::signing_key()?;
@@ -194,7 +194,7 @@ fn verify_jwt(
 		.verify_with_key(&key)
 		.map_err(|e| VerifyJwtError::from(e))?;
 
-	if claims.iss != self_id {
+	if claims.iss != self_id.into() {
 		yeet!(VerifyJwtError::IncorrectIssuer.into())
 	}
 
@@ -228,7 +228,7 @@ fn verify_jwt(
 pub async fn verify_auth_code<'c>(
 	db: &MySqlPool,
 	token: &str,
-	self_id: Url,
+	self_id: &str,
 	client_id: Uuid,
 	redirect_uri: Url,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
@@ -252,7 +252,7 @@ pub async fn verify_auth_code<'c>(
 pub async fn verify_access_token<'c>(
 	db: impl Executor<'c, Database = MySql>,
 	token: &str,
-	self_id: Url,
+	self_id: &str,
 	client_id: Uuid,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let claims = verify_jwt(token, self_id, Some(client_id))?;
@@ -267,7 +267,7 @@ pub async fn verify_access_token<'c>(
 pub async fn verify_refresh_token<'c>(
 	db: impl Executor<'c, Database = MySql>,
 	token: &str,
-	self_id: Url,
+	self_id: &str,
 	client_id: Option<Uuid>,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let claims = verify_jwt(token, self_id, client_id)?;

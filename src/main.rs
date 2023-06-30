@@ -5,6 +5,7 @@ use actix_web::middleware::{ErrorHandlerResponse, ErrorHandlers, Logger, Normali
 use actix_web::web::Data;
 use actix_web::{dev, App, HttpServer};
 
+use bpaf::Bpaf;
 use exun::*;
 
 mod api;
@@ -44,11 +45,27 @@ async fn delete_expired_tokens(db: MySqlPool) {
 	}
 }
 
+#[derive(Debug, Clone, Bpaf)]
+#[bpaf(options, version)]
+struct Opts {
+	/// The environment that the server is running in. Must be one of: local,
+	/// dev, staging, prod.
+	#[bpaf(
+		env("LOCKDAGGER_ENVIRONMENT"),
+		fallback(config::Environment::Local),
+		display_fallback
+	)]
+	env: config::Environment,
+}
+
 #[actix_web::main]
 async fn main() -> Result<(), RawUnexpected> {
 	// load the environment file, but only in debug mode
 	#[cfg(debug_assertions)]
 	dotenv::dotenv()?;
+
+	let args = opts().run();
+	config::set_environment(args.env);
 
 	// initialize the database
 	let db_url = secrets::database_url()?;
