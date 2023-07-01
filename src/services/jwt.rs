@@ -20,7 +20,7 @@ pub enum TokenType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
 	iss: Box<str>,
-	aud: Option<Box<[String]>>,
+	aud: Box<[String]>,
 	#[serde(with = "ts_milliseconds")]
 	exp: DateTime<Utc>,
 	#[serde(with = "ts_milliseconds_option")]
@@ -58,9 +58,11 @@ impl Claims {
 
 		db::create_auth_code(db, id, exp).await?;
 
+		let aud = [self_id.to_string(), client_id.to_string()].into();
+
 		Ok(Self {
 			iss: Box::from(self_id),
-			aud: None,
+			aud,
 			exp,
 			nbf: None,
 			iat: Some(time),
@@ -89,9 +91,11 @@ impl Claims {
 			.await
 			.unexpect()?;
 
+		let aud = [self_id.to_string(), client_id.to_string()].into();
+
 		Ok(Self {
 			iss: Box::from(self_id),
-			aud: None,
+			aud,
 			exp,
 			nbf: None,
 			iat: Some(time),
@@ -204,10 +208,8 @@ fn verify_jwt(
 		}
 	}
 
-	if let Some(aud) = claims.aud.clone() {
-		if !aud.contains(&self_id.to_string()) {
-			yeet!(VerifyJwtError::BadAudience.into())
-		}
+	if !claims.aud.contains(&self_id.to_string()) {
+		yeet!(VerifyJwtError::BadAudience.into())
 	}
 
 	let now = Utc::now();
