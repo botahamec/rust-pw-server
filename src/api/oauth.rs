@@ -216,12 +216,16 @@ async fn authenticate_user(
 	db: &MySqlPool,
 	username: &str,
 	password: &str,
-) -> Result<bool, RawUnexpected> {
+) -> Result<Option<Uuid>, RawUnexpected> {
 	let Some(user) = db::get_user_by_username(db, username).await? else {
-		return Ok(false);
+		return Ok(None);
 	};
 
-	Ok(user.check_password(password)?)
+	if user.check_password(password)? {
+		Ok(Some(user.id))
+	} else {
+		Ok(None)
+	}
 }
 
 #[post("/authorize")]
@@ -248,7 +252,7 @@ async fn authorize(
 		return HttpResponse::InternalServerError().content_type("text/html").body(page);
 	};
 
-	let self_id = config.id;
+	let self_id = config.url;
 	let state = req.state.clone();
 
 	// get redirect uri
@@ -267,9 +271,9 @@ async fn authorize(
 	};
 
 	// authenticate user
-	if !authenticate_user(db, &credentials.username, &credentials.password)
+	let Some(user_id) = authenticate_user(db, &credentials.username, &credentials.password)
 		.await
-		.unwrap()
+		.unwrap() else
 	{
 		let language = Language::from_str("en").unwrap();
 		let translations = translations.get_ref().clone();
@@ -289,9 +293,10 @@ async fn authorize(
 	match req.response_type {
 		ResponseType::Code => {
 			// create auth code
-			let code = jwt::Claims::auth_code(db, &self_id, client_id, &scope, &redirect_uri)
-				.await
-				.unwrap();
+			let code =
+				jwt::Claims::auth_code(db, self_id, client_id, user_id, &scope, &redirect_uri)
+					.await
+					.unwrap();
 			let code = code.to_jwt().unwrap();
 
 			let response = AuthCodeResponse { code, state };
@@ -307,7 +312,7 @@ async fn authorize(
 			// create access token
 			let duration = Duration::hours(1);
 			let access_token =
-				jwt::Claims::access_token(db, None, &self_id, client_id, duration, &scope)
+				jwt::Claims::access_token(db, None, self_id, client_id, user_id, duration, &scope)
 					.await
 					.unwrap();
 
@@ -635,7 +640,7 @@ async fn token(
 	};
 	let config = config::get_config().unwrap();
 
-	let self_id = config.id;
+	let self_id = config.url;
 	let duration = Duration::hours(1);
 	let token_type = Box::from("bearer");
 	let cache_control = header::CacheControl(vec![header::CacheDirective::NoStore]);
@@ -677,8 +682,9 @@ async fn token(
 			let access_token = jwt::Claims::access_token(
 				db,
 				Some(claims.id()),
-				&self_id,
+				self_id,
 				client_id,
+				claims.subject(),
 				duration,
 				claims.scopes(),
 			)
@@ -729,7 +735,7 @@ async fn token(
 			}
 
 			// authenticate user
-			if !authenticate_user(db, &username, &password).await.unwrap() {
+			let Some(user_id) = authenticate_user(db, &username, &password).await.unwrap() else {
 				return TokenError::incorrect_user_credentials().error_response();
 			};
 
@@ -755,7 +761,7 @@ async fn token(
 			}
 
 			let access_token =
-				jwt::Claims::access_token(db, None, &self_id, client_id, duration, &scope)
+				jwt::Claims::access_token(db, None, self_id, client_id, user_id, duration, &scope)
 					.await
 					.unwrap();
 			let refresh_token = jwt::Claims::refresh_token(db, &access_token).await.unwrap();
@@ -818,10 +824,11 @@ async fn token(
 				return TokenError::excessive_scope().error_response();
 			}
 
-			let access_token =
-				jwt::Claims::access_token(db, None, &self_id, client_id, duration, &scope)
-					.await
-					.unwrap();
+			let access_token = jwt::Claims::access_token(
+				db, None, self_id, client_id, client_id, duration, &scope,
+			)
+			.await
+			.unwrap();
 
 			let expires_in = access_token.expires_in();
 			let scope = access_token.scopes().into();

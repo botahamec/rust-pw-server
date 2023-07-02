@@ -19,14 +19,15 @@ pub enum TokenType {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Claims {
-	iss: Box<str>,
+	iss: Url,
+	sub: Uuid,
 	aud: Box<[String]>,
 	#[serde(with = "ts_milliseconds")]
 	exp: DateTime<Utc>,
 	#[serde(with = "ts_milliseconds_option")]
 	nbf: Option<DateTime<Utc>>,
-	#[serde(with = "ts_milliseconds_option")]
-	iat: Option<DateTime<Utc>>,
+	#[serde(with = "ts_milliseconds")]
+	iat: DateTime<Utc>,
 	jti: Uuid,
 	scope: Box<str>,
 	client_id: Uuid,
@@ -45,27 +46,29 @@ pub enum RevokedRefreshTokenReason {
 impl Claims {
 	pub async fn auth_code<'c>(
 		db: &MySqlPool,
-		self_id: &str,
+		self_id: Url,
 		client_id: Uuid,
+		sub: Uuid,
 		scopes: &str,
 		redirect_uri: &Url,
 	) -> Result<Self, RawUnexpected> {
 		let five_minutes = Duration::minutes(5);
 
 		let id = new_id(db, db::auth_code_exists).await?;
-		let time = Utc::now();
-		let exp = time + five_minutes;
+		let iat = Utc::now();
+		let exp = iat + five_minutes;
 
 		db::create_auth_code(db, id, exp).await?;
 
 		let aud = [self_id.to_string(), client_id.to_string()].into();
 
 		Ok(Self {
-			iss: Box::from(self_id),
+			iss: self_id,
+			sub,
 			aud,
 			exp,
 			nbf: None,
-			iat: Some(time),
+			iat,
 			jti: id,
 			scope: scopes.into(),
 			client_id,
@@ -78,14 +81,15 @@ impl Claims {
 	pub async fn access_token<'c>(
 		db: &MySqlPool,
 		auth_code_id: Option<Uuid>,
-		self_id: &str,
+		self_id: Url,
 		client_id: Uuid,
+		sub: Uuid,
 		duration: Duration,
 		scopes: &str,
 	) -> Result<Self, RawUnexpected> {
 		let id = new_id(db, db::access_token_exists).await?;
-		let time = Utc::now();
-		let exp = time + duration;
+		let iat = Utc::now();
+		let exp = iat + duration;
 
 		db::create_access_token(db, id, auth_code_id, exp)
 			.await
@@ -94,11 +98,12 @@ impl Claims {
 		let aud = [self_id.to_string(), client_id.to_string()].into();
 
 		Ok(Self {
-			iss: Box::from(self_id),
+			iss: self_id,
+			sub,
 			aud,
 			exp,
 			nbf: None,
-			iat: Some(time),
+			iat,
 			jti: id,
 			scope: scopes.into(),
 			client_id,
@@ -115,14 +120,14 @@ impl Claims {
 		let one_day = Duration::days(1);
 
 		let id = new_id(db, db::refresh_token_exists).await?;
-		let time = Utc::now();
+		let iat = Utc::now();
 		let exp = other_token.exp + one_day;
 
 		db::create_refresh_token(db, id, other_token.auth_code_id, exp).await?;
 
 		let mut claims = other_token.clone();
 		claims.exp = exp;
-		claims.iat = Some(time);
+		claims.iat = iat;
 		claims.jti = id;
 		claims.token_type = TokenType::Refresh;
 
@@ -135,14 +140,14 @@ impl Claims {
 		exp_time: Duration,
 	) -> Result<Self, RawUnexpected> {
 		let id = new_id(db, db::access_token_exists).await?;
-		let time = Utc::now();
-		let exp = time + exp_time;
+		let iat = Utc::now();
+		let exp = iat + exp_time;
 
 		db::create_access_token(db, id, refresh_token.auth_code_id, exp).await?;
 
 		let mut claims = refresh_token.clone();
 		claims.exp = exp;
-		claims.iat = Some(time);
+		claims.iat = iat;
 		claims.jti = id;
 		claims.token_type = TokenType::Access;
 
@@ -151,6 +156,10 @@ impl Claims {
 
 	pub fn id(&self) -> Uuid {
 		self.jti
+	}
+
+	pub fn subject(&self) -> Uuid {
+		self.sub
 	}
 
 	pub fn expires_in(&self) -> i64 {
@@ -190,7 +199,7 @@ pub enum VerifyJwtError {
 
 fn verify_jwt(
 	token: &str,
-	self_id: &str,
+	self_id: &Url,
 	client_id: Option<Uuid>,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let key = secrets::signing_key()?;
@@ -198,7 +207,7 @@ fn verify_jwt(
 		.verify_with_key(&key)
 		.map_err(|e| VerifyJwtError::from(e))?;
 
-	if claims.iss != self_id.into() {
+	if &claims.iss != self_id {
 		yeet!(VerifyJwtError::IncorrectIssuer.into())
 	}
 
@@ -230,7 +239,7 @@ fn verify_jwt(
 pub async fn verify_auth_code<'c>(
 	db: &MySqlPool,
 	token: &str,
-	self_id: &str,
+	self_id: &Url,
 	client_id: Uuid,
 	redirect_uri: Url,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
@@ -254,7 +263,7 @@ pub async fn verify_auth_code<'c>(
 pub async fn verify_access_token<'c>(
 	db: impl Executor<'c, Database = MySql>,
 	token: &str,
-	self_id: &str,
+	self_id: &Url,
 	client_id: Uuid,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let claims = verify_jwt(token, self_id, Some(client_id))?;
@@ -269,7 +278,7 @@ pub async fn verify_access_token<'c>(
 pub async fn verify_refresh_token<'c>(
 	db: impl Executor<'c, Database = MySql>,
 	token: &str,
-	self_id: &str,
+	self_id: &Url,
 	client_id: Option<Uuid>,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
 	let claims = verify_jwt(token, self_id, client_id)?;
