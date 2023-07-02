@@ -418,6 +418,16 @@ async fn update_client_redirect_uris(
 	let db = db.get_ref();
 	let id = *id;
 
+	for uri in body.0.iter() {
+		if uri.scheme() != "https" {
+			yeet!(CreateClientError::NonHttpsUri.into());
+		}
+
+		if uri.fragment().is_some() {
+			yeet!(CreateClientError::UriFragment.into())
+		}
+	}
+
 	if !db::client_id_exists(db, id).await.unwrap() {
 		yeet!(ClientNotFound::new(id).into());
 	}

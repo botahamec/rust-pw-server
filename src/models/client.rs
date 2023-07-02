@@ -60,6 +60,10 @@ pub enum CreateClientError {
 	NoSecret,
 	#[error("Only confidential clients may be trusted")]
 	TrustedError,
+	#[error("Redirect URIs must not include a fragment component")]
+	UriFragment,
+	#[error("Redirect URIs must use HTTPS")]
+	NonHttpsUri,
 }
 
 impl ResponseError for CreateClientError {
@@ -91,6 +95,16 @@ impl Client {
 
 		if ty == ClientType::Public && trusted {
 			yeet!(CreateClientError::TrustedError.into());
+		}
+
+		for redirect_uri in redirect_uris {
+			if redirect_uri.scheme() != "https" {
+				yeet!(CreateClientError::NonHttpsUri.into())
+			}
+
+			if redirect_uri.fragment().is_some() {
+				yeet!(CreateClientError::UriFragment.into())
+			}
 		}
 
 		Ok(Self {
