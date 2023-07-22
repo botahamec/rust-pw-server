@@ -64,7 +64,7 @@ pub fn error_page(
 	let mut context = tera::Context::new();
 	context.insert("lang", language.as_str());
 	context.insert("errorHeader", &header);
-	context.insert("errormessage", &message);
+	context.insert("errorMessage", &message);
 
 	tera.render("error.html", &context).unexpect()
 }

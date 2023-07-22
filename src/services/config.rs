@@ -13,7 +13,6 @@ static ENVIRONMENT: RwLock<Environment> = RwLock::new(Environment::Local);
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-	pub id: Box<str>,
 	pub url: Url,
 }
 

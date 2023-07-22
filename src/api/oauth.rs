@@ -64,7 +64,7 @@ struct AuthTokenResponse {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 enum AuthorizeErrorType {
 	InvalidRequest,
 	UnauthorizedClient,
@@ -232,7 +232,7 @@ async fn authenticate_user(
 async fn authorize(
 	db: web::Data<MySqlPool>,
 	req: web::Query<AuthorizationParameters>,
-	credentials: web::Json<AuthorizeCredentials>,
+	credentials: web::Form<AuthorizeCredentials>,
 	tera: web::Data<Tera>,
 	translations: web::Data<languages::Translations>,
 ) -> Result<HttpResponse, AuthorizeError> {
@@ -443,7 +443,7 @@ async fn authorize_page(
 	Ok(HttpResponse::Ok().content_type("text/html").body(page))
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "grant_type")]
 #[serde(rename_all = "snake_case")]
 enum GrantType {
@@ -469,7 +469,7 @@ enum GrantType {
 	Unsupported,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct TokenRequest {
 	#[serde(flatten)]
 	grant_type: GrantType,
@@ -571,7 +571,7 @@ impl TokenError {
 		Self {
 			status_code: StatusCode::BAD_REQUEST,
 			error: TokenErrorType::UnauthorizedClient,
-			error_description: format!("Only a confidential client may be used with this endpoint. The {alias} client is a public client.")
+			error_description: format!("Only a confidential client may be used with this flow. The {alias} client is a public client.")
 				.into_boxed_str(),
 		}
 	}
@@ -646,7 +646,7 @@ async fn token(
 ) -> HttpResponse {
 	// TODO protect against brute force attacks
 	let db = db.get_ref();
-	let request = serde_json::from_slice::<TokenRequest>(&req);
+	let request = serde_urlencoded::from_bytes::<TokenRequest>(&req);
 	let Ok(request) = request else {
 		return TokenError::invalid_request().error_response();
 	};
@@ -689,6 +689,8 @@ async fn token(
 				if !hash.check_password(authorization.password()).unwrap() {
 					return TokenError::incorrect_client_secret().error_response();
 				}
+			} else if authorization.is_some() {
+				return TokenError::incorrect_client_secret().error_response();
 			}
 
 			let access_token = jwt::Claims::access_token(
@@ -862,25 +864,36 @@ async fn token(
 			refresh_token,
 			scope,
 		} => {
-			let client_id: Option<Uuid>;
+			let claims = match jwt::verify_refresh_token(db, &refresh_token, &self_id).await {
+				Ok(claims) => claims,
+				Err(e) => {
+					let e = e.unwrap();
+					return TokenError::bad_refresh_token(e).error_response();
+				}
+			};
+
+			let client_id = claims.client_id();
 			if let Some(authorization) = authorization {
 				let client_alias = authorization.username();
 				let Some(id) = db::get_client_id_by_alias(db, client_alias).await.unwrap() else {
 					return TokenError::client_not_found(client_alias).error_response();
 				};
-				client_id = Some(id);
-			} else {
-				client_id = None;
-			}
 
-			let claims =
-				match jwt::verify_refresh_token(db, &refresh_token, &self_id, client_id).await {
-					Ok(claims) => claims,
-					Err(e) => {
-						let e = e.unwrap();
-						return TokenError::bad_refresh_token(e).error_response();
+				// authenticate client
+				if let Some(hash) = db::get_client_secret(db, id).await.unwrap() {
+					if !hash.check_password(authorization.password()).unwrap() {
+						return TokenError::incorrect_client_secret().error_response();
 					}
-				};
+				} else {
+					return TokenError::incorrect_client_secret().error_response();
+				}
+			} else if db::get_client_secret(db, client_id)
+				.await
+				.unwrap()
+				.is_some()
+			{
+				return TokenError::no_authorization().error_response();
+			}
 
 			let scope = if let Some(scope) = scope {
 				if !scopes::is_subset_of(&scope, claims.scopes()) {

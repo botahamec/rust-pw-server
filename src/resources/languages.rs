@@ -38,6 +38,7 @@ impl Translations {
 			}
 
 			let path = entry.path();
+			let Some(path) = path.file_name() else { yeet!(RawUnexpected::msg("Path ended with ..")) };
 			let path = path.to_string_lossy();
 			let Some(language) = path.as_bytes().get(0..2) else { yeet!(RawUnexpected::msg(format!("{} not long enough to be a language name", path))) };
 			let language = Language::from_bytes(language)?;

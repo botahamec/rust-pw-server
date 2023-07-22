@@ -95,7 +95,7 @@ async fn get_client_alias(
 	Ok(HttpResponse::Ok().json(alias))
 }
 
-#[get("/{client_id}/type")]
+#[get("/{client_id}/client-type")]
 async fn get_client_type(
 	client_id: web::Path<Uuid>,
 	db: web::Data<MySqlPool>,
@@ -185,7 +185,7 @@ async fn get_client_is_trusted(
 #[serde(rename_all = "camelCase")]
 struct ClientRequest {
 	alias: Box<str>,
-	ty: ClientType,
+	client_type: ClientType,
 	redirect_uris: Box<[Url]>,
 	secret: Option<Box<str>>,
 	allowed_scopes: Box<[Box<str>]>,
@@ -229,7 +229,7 @@ async fn create_client(
 	let client = Client::new(
 		id,
 		&alias,
-		body.ty,
+		body.client_type,
 		body.secret.as_deref(),
 		body.allowed_scopes.clone(),
 		body.default_scopes.clone(),
@@ -287,7 +287,7 @@ async fn update_client(
 	let client = Client::new(
 		id,
 		&alias,
-		body.ty,
+		body.client_type,
 		body.secret.as_deref(),
 		body.allowed_scopes.clone(),
 		body.default_scopes.clone(),
@@ -329,7 +329,7 @@ async fn update_client_alias(
 	Ok(response)
 }
 
-#[put("/{id}/type")]
+#[put("/{id}/client-type")]
 async fn update_client_type(
 	id: web::Path<Uuid>,
 	body: web::Json<ClientType>,
@@ -343,10 +343,23 @@ async fn update_client_type(
 		yeet!(ClientNotFound::new(id).into());
 	}
 
+	if db::is_client_trusted(db, id).await.unwrap().unwrap() {
+		yeet!(CreateClientError::TrustedError.into())
+	}
+
+	if *body == ClientType::Confidential && db::get_client_secret(db, id).await.unwrap().is_none() {
+		yeet!(CreateClientError::NoSecret.into())
+	}
+
 	db::update_client_type(db, id, ty).await.unwrap();
 
 	Ok(HttpResponse::NoContent().finish())
 }
+
+// TODO validate that a client is valid before sending it to the DB
+// TODO add DELETE endpoints where appropriate
+// TODO add PATCH endpoints where appropriate
+// TODO fix more race conditions
 
 #[put("/{id}/allowed-scopes")]
 async fn update_client_allowed_scopes(
@@ -360,6 +373,16 @@ async fn update_client_allowed_scopes(
 
 	if !db::client_id_exists(db, id).await.unwrap() {
 		yeet!(ClientNotFound::new(id).into());
+	}
+
+	if let Some(default_scopes) = db::get_client_default_scopes(db, id)
+		.await
+		.unwrap()
+		.unwrap()
+	{
+		if !crate::scopes::is_subset_of(&default_scopes, &allowed_scopes) {
+			yeet!(CreateClientError::ImpermissibleDefaultScopes.into());
+		}
 	}
 
 	db::update_client_allowed_scopes(db, id, &allowed_scopes)
@@ -381,6 +404,17 @@ async fn update_client_default_scopes(
 
 	if !db::client_id_exists(db, id).await.unwrap() {
 		yeet!(ClientNotFound::new(id).into());
+	}
+
+	let allowed_scopes = db::get_client_allowed_scopes(db, id)
+		.await
+		.unwrap()
+		.unwrap();
+
+	if let Some(default_scopes) = &default_scopes {
+		if !crate::scopes::is_subset_of(default_scopes, &allowed_scopes) {
+			yeet!(CreateClientError::ImpermissibleDefaultScopes.into());
+		}
 	}
 
 	db::update_client_default_scopes(db, id, default_scopes)
@@ -478,6 +512,7 @@ pub fn service() -> Scope {
 		.service(update_client_type)
 		.service(update_client_allowed_scopes)
 		.service(update_client_default_scopes)
+		.service(update_client_is_trusted)
 		.service(update_client_redirect_uris)
 		.service(update_client_secret)
 }

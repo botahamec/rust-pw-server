@@ -170,6 +170,10 @@ impl Claims {
 		&self.scope
 	}
 
+	pub fn client_id(&self) -> Uuid {
+		self.client_id
+	}
+
 	pub fn to_jwt(&self) -> Result<Box<str>, RawUnexpected> {
 		let key = secrets::signing_key()?;
 		let jwt = self.sign_with_key(&key)?.into_boxed_str();
@@ -276,16 +280,17 @@ pub async fn verify_access_token<'c>(
 }
 
 pub async fn verify_refresh_token<'c>(
-	db: impl Executor<'c, Database = MySql>,
+	db: impl Executor<'c, Database = MySql> + Clone,
 	token: &str,
 	self_id: &Url,
-	client_id: Option<Uuid>,
 ) -> Result<Claims, Expect<VerifyJwtError>> {
-	let claims = verify_jwt(token, self_id, client_id)?;
+	let claims = verify_jwt(token, self_id, None)?;
 
-	if db::refresh_token_revoked(db, claims.jti).await? {
+	if db::refresh_token_revoked(db.clone(), claims.jti).await? {
 		yeet!(VerifyJwtError::JwtRevoked.into())
 	}
+
+	db::revoke_refresh_token(db, claims.jti).await?;
 
 	Ok(claims)
 }

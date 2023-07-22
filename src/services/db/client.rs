@@ -76,7 +76,7 @@ pub async fn get_client_response<'c>(
 		ClientRow,
 		r"SELECT id as `id: Uuid`,
 		         alias,
-				 type as `client_type: ClientType`,
+				 type as `client_type`,
 				 allowed_scopes,
 				 default_scopes,
 				 trusted as `is_trusted: bool`
@@ -153,10 +153,10 @@ pub async fn get_client_secret<'c>(
 
 	let Some(hash) = hash else { return Ok(None) };
 	let Some(version) = hash.secret_version else { return Ok(None) };
-	let Some(salt) = hash.secret_hash else { return Ok(None) };
-	let Some(hash) = hash.secret_salt else { return Ok(None) };
+	let Some(hashed) = hash.secret_hash else { return Ok(None) };
+	let Some(salt) = hash.secret_salt else { return Ok(None) };
 
-	let hash = PasswordHash::from_fields(&hash, &salt, version as u8);
+	let hash = PasswordHash::from_fields(&hashed, &salt, version as u8);
 	Ok(Some(hash))
 }
 
@@ -228,7 +228,7 @@ async fn create_client_redirect_uris<'c>(
 			client_id,
 			uri.to_string()
 		)
-		.execute(&mut transaction)
+		.execute(transaction.as_mut())
 		.await?;
 	}
 
@@ -242,8 +242,8 @@ pub async fn create_client<'c>(
 	client: &Client,
 ) -> Result<(), sqlx::Error> {
 	query!(
-		r"INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version, allowed_scopes, default_scopes)
-					   VALUES ( ?,     ?,    ?,           ?,           ?,              ?,              ?,              ?)",
+		r"INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version, allowed_scopes, default_scopes, trusted)
+					   VALUES ( ?,     ?,    ?,           ?,           ?,              ?,              ?,              ?,       ?)",
 		client.id(),
 		client.alias(),
 		client.client_type(),
@@ -251,9 +251,10 @@ pub async fn create_client<'c>(
 		client.secret_salt(),
 		client.secret_version(),
 		client.allowed_scopes(),
-		client.default_scopes()
+		client.default_scopes(),
+		client.is_trusted()
 	)
-	.execute(&mut transaction)
+	.execute(transaction.as_mut())
 	.await?;
 
 	create_client_redirect_uris(transaction, client.id(), client.redirect_uris()).await?;
@@ -275,8 +276,8 @@ pub async fn update_client<'c>(
 		allowed_scopes = ?,
 		default_scopes = ?
 		WHERE id = ?",
-		client.client_type(),
 		client.alias(),
+		client.client_type(),
 		client.secret_hash(),
 		client.secret_salt(),
 		client.secret_version(),
@@ -284,7 +285,7 @@ pub async fn update_client<'c>(
 		client.default_scopes(),
 		client.id()
 	)
-	.execute(&mut transaction)
+	.execute(transaction.as_mut())
 	.await?;
 
 	update_client_redirect_uris(transaction, client.id(), client.redirect_uris()).await?;
@@ -359,7 +360,7 @@ pub async fn update_client_redirect_uris<'c>(
 	id: Uuid,
 	uris: &[Url],
 ) -> Result<(), sqlx::Error> {
-	delete_client_redirect_uris(&mut transaction, id).await?;
+	delete_client_redirect_uris(transaction.as_mut(), id).await?;
 	create_client_redirect_uris(transaction, id, uris).await?;
 	Ok(())
 }

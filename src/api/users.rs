@@ -192,13 +192,13 @@ async fn update_user(
 	let username = body.username.clone();
 	let password = PasswordHash::new(&body.password).unwrap();
 
+	if !db::user_id_exists(conn, user_id).await.unwrap() {
+		yeet!(UserNotFoundError { user_id }.into())
+	}
+
 	let old_username = db::get_username(conn, user_id).await.unwrap().unwrap();
 	if username != old_username && db::username_is_used(conn, &body.username).await.unwrap() {
 		yeet!(UsernameTakenError { username }.into())
-	}
-
-	if !db::user_id_exists(conn, user_id).await.unwrap() {
-		yeet!(UserNotFoundError { user_id }.into())
 	}
 
 	let user = User {
@@ -224,13 +224,13 @@ async fn update_username(
 	let user_id = user_id.to_owned();
 	let username = body.clone();
 
+	if !db::user_id_exists(conn, user_id).await.unwrap() {
+		yeet!(UserNotFoundError { user_id }.into())
+	}
+
 	let old_username = db::get_username(conn, user_id).await.unwrap().unwrap();
 	if username != old_username && db::username_is_used(conn, &body).await.unwrap() {
 		yeet!(UsernameTakenError { username }.into())
-	}
-
-	if !db::user_id_exists(conn, user_id).await.unwrap() {
-		yeet!(UserNotFoundError { user_id }.into())
 	}
 
 	db::update_username(conn, user_id, &body).await.unwrap();

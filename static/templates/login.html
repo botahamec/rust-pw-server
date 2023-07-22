@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ msg(key="loginTitle") }}{% endblock title %}
 {% block content %}
-<form method="post" action="/authorize?{{params}}">
-	{% if errorMessage %}
-		<p>{{ msg(key=errorMessage) }}</p>
-	{% endif %}
+{% if errorMessage %}
+	<p>{{ msg(key=errorMessage) }}</p>
+{% endif %}
+<form method="post" action="/oauth/authorize?{{params}}">
 	<label for="username">{{ msg(key="usernameLabel") }}</label>
 	<input id="username" type="text" name="username" tabindex="0" placeholder="{{ msg(key="usernamePlaceholder") }}" autofocus />
 	<label for="password">{{ msg(key="passwordLabel") }}</label>
 	<input id="password" type="password" name="password" tabindex="0" placeholder="{{ msg(key="passwordPlaceholder") }}" />
-	<input type="submit" tabindex="0" name="login" value="{{ msg(key="loginSubmitButton") }}" />
+	<input type="submit" tabindex="0" value="{{ msg(key="loginSubmitButton") }}" />
 </form>
 {% endblock content %}

@@ -1,9 +1,10 @@
-use std::{hash::Hash, marker::PhantomData};
+use std::{fmt::Display, hash::Hash, str::FromStr};
 
 use actix_web::{http::StatusCode, ResponseError};
 use exun::{Expect, RawUnexpected};
 use raise::yeet;
 use serde::{Deserialize, Serialize};
+use sqlx::{mysql::MySqlTypeInfo, MySql};
 use thiserror::Error;
 use url::Url;
 use uuid::Uuid;
@@ -12,8 +13,7 @@ use crate::services::crypto::PasswordHash;
 
 /// There are two types of clients, based on their ability to maintain the
 /// security of their client credentials.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ClientType {
 	/// A client that is capable of maintaining the confidentiality of their
@@ -25,6 +25,57 @@ pub enum ClientType {
 	/// credentials and cannot authenticate securely by any other means, such
 	/// as an installed application, or a web-browser based application.
 	Public,
+}
+
+impl Display for ClientType {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.write_str(match self {
+			Self::Confidential => "confidential",
+			Self::Public => "public",
+		})
+	}
+}
+
+impl FromStr for ClientType {
+	type Err = ();
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s {
+			"confidential" => Ok(Self::Confidential),
+			"public" => Ok(Self::Public),
+			_ => Err(()),
+		}
+	}
+}
+
+impl sqlx::Type<MySql> for ClientType {
+	fn type_info() -> MySqlTypeInfo {
+		<str as sqlx::Type<MySql>>::type_info()
+	}
+}
+
+impl sqlx::Encode<'_, MySql> for ClientType {
+	fn encode_by_ref(
+		&self,
+		buf: &mut <MySql as sqlx::database::HasArguments<'_>>::ArgumentBuffer,
+	) -> sqlx::encode::IsNull {
+		<String as sqlx::Encode<MySql>>::encode_by_ref(&self.to_string(), buf)
+	}
+}
+
+impl sqlx::Decode<'_, MySql> for ClientType {
+	fn decode(
+		value: <MySql as sqlx::database::HasValueRef<'_>>::ValueRef,
+	) -> Result<Self, sqlx::error::BoxDynError> {
+		<&str as sqlx::Decode<MySql>>::decode(value).map(|s| s.parse().unwrap())
+	}
+}
+
+impl From<String> for ClientType {
+	fn from(value: String) -> Self {
+		// TODO banish this abomination back to the shadows from whence it came
+		value.parse().unwrap()
+	}
 }
 
 #[derive(Debug, Clone)]
@@ -58,12 +109,14 @@ impl Hash for Client {
 pub enum CreateClientError {
 	#[error("Confidential clients must have a secret, but it was not provided")]
 	NoSecret,
-	#[error("Only confidential clients may be trusted")]
+	#[error("Trusted clients must be confidential")]
 	TrustedError,
 	#[error("Redirect URIs must not include a fragment component")]
 	UriFragment,
 	#[error("Redirect URIs must use HTTPS")]
 	NonHttpsUri,
+	#[error("The default scope is not a subset of the allowed scopes for this client")]
+	ImpermissibleDefaultScopes,
 }
 
 impl ResponseError for CreateClientError {
@@ -95,6 +148,14 @@ impl Client {
 
 		if ty == ClientType::Public && trusted {
 			yeet!(CreateClientError::TrustedError.into());
+		}
+
+		if let Some(default_scopes) = &default_scopes {
+			let default_scopes = default_scopes.join(" ");
+			let allowed_scopes = allowed_scopes.join(" ");
+			if !crate::scopes::is_subset_of(&default_scopes, &allowed_scopes) {
+				yeet!(CreateClientError::ImpermissibleDefaultScopes.into());
+			}
 		}
 
 		for redirect_uri in redirect_uris {

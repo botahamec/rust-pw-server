@@ -124,7 +124,7 @@ pub async fn delete_auth_code<'c>(
 		.execute(executor)
 		.await?;
 
-	Ok(result.rows_affected() != 0)
+	Ok(result.rows_affected() == 0)
 }
 
 pub async fn delete_expired_auth_codes<'c>(
@@ -164,7 +164,7 @@ pub async fn revoke_refresh_token<'c>(
 ) -> Result<bool, RawUnexpected> {
 	let result = query!(
 		"UPDATE refresh_tokens SET revoked_reason = ? WHERE jti = ?",
-		RevokedRefreshTokenReason::NewRefreshToken,
+		"new-refresh-token",
 		jti
 	)
 	.execute(executor)
@@ -179,7 +179,7 @@ pub async fn revoke_refresh_tokens_with_auth_code<'c>(
 ) -> Result<bool, RawUnexpected> {
 	let result = query!(
 		"UPDATE refresh_tokens SET revoked_reason = ? WHERE auth_code = ?",
-		RevokedRefreshTokenReason::ReusedAuthorizationCode,
+		"reused-authorization-code",
 		auth_code
 	)
 	.execute(executor)
