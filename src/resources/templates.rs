@@ -40,6 +40,7 @@ pub fn initialize() -> tera::Result<Tera> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ErrorPage {
+	TooManyRequests,
 	InvalidRequest,
 	ClientNotFound,
 	MissingRedirectUri,

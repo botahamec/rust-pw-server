@@ -3,10 +3,12 @@ use sqlx::MySqlPool;
 
 mod client;
 mod jwt;
+mod login_attempt;
 mod user;
 
 pub use self::jwt::*;
 pub use client::*;
+pub use login_attempt::*;
 pub use user::*;
 
 /// Intialize the connection pool

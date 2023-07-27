@@ -20,7 +20,7 @@ use crate::models::client::ClientType;
 use crate::resources::{languages, templates};
 use crate::scopes;
 use crate::services::jwt::VerifyJwtError;
-use crate::services::{authorization, config, db, jwt};
+use crate::services::{authorization, brute_force_detection, config, db, jwt};
 
 const REALLY_BAD_ERROR_PAGE: &str = "<!DOCTYPE html><html><head><title>Internal Server Error</title></head><body>Internal Server Error</body></html>";
 
@@ -231,12 +231,12 @@ async fn authenticate_user(
 #[post("/authorize")]
 async fn authorize(
 	db: web::Data<MySqlPool>,
+	http_req: HttpRequest,
 	req: web::Query<AuthorizationParameters>,
 	credentials: web::Form<AuthorizeCredentials>,
 	tera: web::Data<Tera>,
 	translations: web::Data<languages::Translations>,
 ) -> Result<HttpResponse, AuthorizeError> {
-	// TODO protect against brute force attacks
 	let db = db.get_ref();
 	let Ok(client_id) = db::get_client_id_by_alias(db, &req.client_id).await else {
 		let page = error_page(&tera, &translations, templates::ErrorPage::InternalServerError).unwrap_or_else(|_| String::from(REALLY_BAD_ERROR_PAGE));
@@ -247,6 +247,10 @@ async fn authorize(
 		return Ok(HttpResponse::NotFound().content_type("text/html").body(page));
 	};
 	let Ok(config) = config::get_config() else {
+		let page = error_page(&tera, &translations, templates::ErrorPage::InternalServerError).unwrap_or_else(|_| String::from(REALLY_BAD_ERROR_PAGE));
+		return Ok(HttpResponse::InternalServerError().content_type("text/html").body(page));
+	};
+	let Some(addr) = http_req.peer_addr() else {
 		let page = error_page(&tera, &translations, templates::ErrorPage::InternalServerError).unwrap_or_else(|_| String::from(REALLY_BAD_ERROR_PAGE));
 		return Ok(HttpResponse::InternalServerError().content_type("text/html").body(page));
 	};
@@ -269,19 +273,35 @@ async fn authorize(
 		}
 	};
 
+	let internal_server_error =
+		AuthorizeError::internal_server_error(redirect_uri.clone(), state.clone());
+
+	// check for brute force attack
+	let Ok(brute_force_detected) = brute_force_detection::brute_force_detected(db, &credentials.username, addr.ip()).await else {
+		yeet!(internal_server_error.clone());
+	};
+	if brute_force_detected {
+		let Ok(page) = error_page(&tera, &translations, templates::ErrorPage::TooManyRequests) else {
+			yeet!(internal_server_error.clone());
+		};
+		return Ok(HttpResponse::TooManyRequests()
+			.content_type("text/html")
+			.body(page));
+	}
+
 	// authenticate user
 	let Some(user_id) = authenticate_user(db, &credentials.username, &credentials.password)
 		.await
-		.unwrap() else
+		.unwrap() else // TODO remove unwrap
 	{
+		if db::add_failed_login_attempt(db, &credentials.username, addr.ip()).await.is_err() {
+			yeet!(internal_server_error.clone());
+		}
 		let language = Language::from_str("en").unwrap();
 		let translations = translations.get_ref().clone();
 		let page = templates::login_error_page(&tera, &req, language, translations).unwrap_or_else(|_| String::from(REALLY_BAD_ERROR_PAGE));
 		return Ok(HttpResponse::Ok().content_type("text/html").body(page));
 	};
-
-	let internal_server_error =
-		AuthorizeError::internal_server_error(redirect_uri.clone(), state.clone());
 
 	// get scope
 	let scope = match get_scope(&req.scope, db, client_id, &redirect_uri, &state).await {

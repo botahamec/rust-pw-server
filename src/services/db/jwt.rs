@@ -3,8 +3,6 @@ use exun::{RawUnexpected, ResultErrorExt};
 use sqlx::{query, query_scalar, Executor, MySql};
 use uuid::Uuid;
 
-use crate::services::jwt::RevokedRefreshTokenReason;
-
 pub async fn auth_code_exists<'c>(
 	executor: impl Executor<'c, Database = MySql>,
 	jti: Uuid,
