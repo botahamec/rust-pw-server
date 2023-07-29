@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT EXISTS(\n\t\t\tSELECT revoked_reason FROM refresh_tokens WHERE jti = ? and revoked_reason IS NOT NULL\n\t\t) as `e: bool`",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "e: bool",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "BINARY",
+          "char_set": 63,
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "db75cdf97363794437c3a14c142639473ac2a07cdf00fa7186407c27678dee96"
+}

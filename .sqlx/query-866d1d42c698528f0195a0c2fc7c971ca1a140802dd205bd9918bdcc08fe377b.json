@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE clients SET alias = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "866d1d42c698528f0195a0c2fc7c971ca1a140802dd205bd9918bdcc08fe377b"
+}

@@ -6,6 +6,7 @@ use actix_web::web::Data;
 use actix_web::{dev, App, HttpServer};
 
 use bpaf::Bpaf;
+use chrono::Utc;
 use exun::*;
 
 mod api;
@@ -32,16 +33,21 @@ async fn delete_expired_tokens(db: MySqlPool) {
 	let db = db.clone();
 	let mut interval = actix_rt::time::interval(Duration::from_secs(60 * 20));
 	loop {
-		interval.tick().await;
 		if let Err(e) = db::delete_expired_auth_codes(&db).await {
-			log::error!("{}", e);
+			log::error!("{e}");
 		}
 		if let Err(e) = db::delete_expired_access_tokens(&db).await {
-			log::error!("{}", e);
+			log::error!("{e}");
 		}
 		if let Err(e) = db::delete_expired_refresh_tokens(&db).await {
-			log::error!("{}", e);
+			log::error!("{e}");
 		}
+		if let Err(e) =
+			db::delete_old_login_attempts_before(&db, Utc::now() - chrono::Duration::hours(1)).await
+		{
+			log::error!("{e}")
+		}
+		interval.tick().await;
 	}
 }
 

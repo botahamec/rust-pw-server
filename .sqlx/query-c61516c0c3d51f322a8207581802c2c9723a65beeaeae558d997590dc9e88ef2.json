@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT EXISTS(SELECT id FROM users WHERE id = ?) as `e: bool`",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "e: bool",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "char_set": 63,
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c61516c0c3d51f322a8207581802c2c9723a65beeaeae558d997590dc9e88ef2"
+}

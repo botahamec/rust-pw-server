@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE clients SET\n\t\talias = ?,\n\t\ttype = ?,\n\t\tsecret_hash = ?,\n\t\tsecret_salt = ?,\n\t\tsecret_version = ?,\n\t\tallowed_scopes = ?,\n\t\tdefault_scopes = ?\n\t\tWHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "981d6ca67138bfa4377025ff560f53fd77edcb9bed0d7f0cfb3468357ea5f1fe"
+}

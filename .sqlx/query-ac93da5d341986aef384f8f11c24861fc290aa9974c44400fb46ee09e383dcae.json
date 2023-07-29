@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO client_redirect_uris (client_id, redirect_uri)\n\t\t\t\t\t\t\t\t\t    VALUES (        ?,            ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ac93da5d341986aef384f8f11c24861fc290aa9974c44400fb46ee09e383dcae"
+}

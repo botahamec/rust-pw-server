@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT allowed_scopes FROM clients WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "allowed_scopes",
+        "type_info": {
+          "type": "Blob",
+          "flags": "NOT_NULL | BLOB | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 67108860
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5ae6b0a1174e5735cb3ea5b073f4d1877f7552ac0a6df54c978fcad9e87d5f9b"
+}

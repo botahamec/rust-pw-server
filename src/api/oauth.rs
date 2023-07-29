@@ -562,6 +562,14 @@ impl TokenError {
 		}
 	}
 
+	fn too_many_requests() -> Self {
+		Self {
+			status_code: StatusCode::UNAUTHORIZED,
+			error: TokenErrorType::InvalidClient,
+			error_description: Box::from("Too many failed attempts. Please wait one hour."),
+		}
+	}
+
 	fn client_not_found(alias: &str) -> Self {
 		Self {
 			status_code: StatusCode::UNAUTHORIZED,
@@ -662,15 +670,16 @@ impl ResponseError for TokenError {
 async fn token(
 	db: web::Data<MySqlPool>,
 	req: web::Bytes,
+	http_req: HttpRequest,
 	authorization: Option<web::Header<authorization::BasicAuthorization>>,
 ) -> HttpResponse {
-	// TODO protect against brute force attacks
 	let db = db.get_ref();
 	let request = serde_urlencoded::from_bytes::<TokenRequest>(&req);
 	let Ok(request) = request else {
 		return TokenError::invalid_request().error_response();
 	};
 	let config = config::get_config().unwrap();
+	let ip = http_req.peer_addr().unwrap().ip();
 
 	let self_id = config.url;
 	let duration = Duration::hours(1);
@@ -703,10 +712,21 @@ async fn token(
 					return TokenError::no_authorization().error_response();
 				};
 
+				// brute force detection
+				if brute_force_detection::brute_force_detected(db, &client_id.to_string(), ip)
+					.await
+					.unwrap()
+				{
+					return TokenError::too_many_requests().error_response();
+				}
+
 				if authorization.username() != client_alias.deref() {
 					return TokenError::mismatch_client_id().error_response();
 				}
 				if !hash.check_password(authorization.password()).unwrap() {
+					db::add_failed_login_attempt(db, &client_id.to_string(), ip)
+						.await
+						.unwrap();
 					return TokenError::incorrect_client_secret().error_response();
 				}
 			} else if authorization.is_some() {
@@ -762,14 +782,34 @@ async fn token(
 				return TokenError::untrusted_client().error_response();
 			}
 
+			// brute force detection
+			if brute_force_detection::brute_force_detected(db, &client_id.to_string(), ip)
+				.await
+				.unwrap()
+			{
+				return TokenError::too_many_requests().error_response();
+			}
+
 			// verify client
 			let hash = db::get_client_secret(db, client_id).await.unwrap().unwrap();
 			if !hash.check_password(authorization.password()).unwrap() {
+				db::add_failed_login_attempt(db, &client_id.to_string(), ip)
+					.await
+					.unwrap();
 				return TokenError::incorrect_client_secret().error_response();
+			}
+
+			// brute force detection
+			if brute_force_detection::brute_force_detected(db, &username, ip)
+				.await
+				.unwrap()
+			{
+				return TokenError::too_many_requests().error_response();
 			}
 
 			// authenticate user
 			let Some(user_id) = authenticate_user(db, &username, &password).await.unwrap() else {
+				db::add_failed_login_attempt(db, &username, ip).await.unwrap();
 				return TokenError::incorrect_user_credentials().error_response();
 			};
 
@@ -831,9 +871,20 @@ async fn token(
 				return TokenError::client_not_confidential(client_alias).error_response();
 			}
 
+			// brute force detection
+			if brute_force_detection::brute_force_detected(db, &client_id.to_string(), ip)
+				.await
+				.unwrap()
+			{
+				return TokenError::too_many_requests().error_response();
+			}
+
 			// verify client
 			let hash = db::get_client_secret(db, client_id).await.unwrap().unwrap();
 			if !hash.check_password(authorization.password()).unwrap() {
+				db::add_failed_login_attempt(db, &client_id.to_string(), ip)
+					.await
+					.unwrap();
 				return TokenError::incorrect_client_secret().error_response();
 			}
 
@@ -899,9 +950,20 @@ async fn token(
 					return TokenError::client_not_found(client_alias).error_response();
 				};
 
+				// brute force detection
+				if brute_force_detection::brute_force_detected(db, &client_id.to_string(), ip)
+					.await
+					.unwrap()
+				{
+					return TokenError::too_many_requests().error_response();
+				}
+
 				// authenticate client
 				if let Some(hash) = db::get_client_secret(db, id).await.unwrap() {
 					if !hash.check_password(authorization.password()).unwrap() {
+						db::add_failed_login_attempt(db, &client_id.to_string(), ip)
+							.await
+							.unwrap();
 						return TokenError::incorrect_client_secret().error_response();
 					}
 				} else {

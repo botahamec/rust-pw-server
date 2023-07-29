@@ -1,0 +1,47 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT secret_hash, secret_salt, secret_version\n\t\tFROM clients WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "secret_hash",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB | BINARY",
+          "char_set": 63,
+          "max_size": 255
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "secret_salt",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB | BINARY",
+          "char_set": 63,
+          "max_size": 255
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "secret_version",
+        "type_info": {
+          "type": "Long",
+          "flags": "UNSIGNED",
+          "char_set": 63,
+          "max_size": 10
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b765470e11aa3a02586b0ea0a65f1bb93f104afde56fb2d77b2c72a8742fb9e0"
+}

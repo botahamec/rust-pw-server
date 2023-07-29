@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO clients (id, alias, type, secret_hash, secret_salt, secret_version, allowed_scopes, default_scopes, trusted)\n\t\t\t\t\t   VALUES ( ?,     ?,    ?,           ?,           ?,              ?,              ?,              ?,       ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "023f85c95419de1e8e177e67c2a175092a2d742836872f2f5a3b830159d2fb03"
+}

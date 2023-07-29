@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO access_tokens (jti, auth_code, exp)\n\t                         VALUES (  ?,         ?,   ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "37589f6cbc849bbbcf243c67392c1a39f6d3d408f999a030fd21e1b42021f08e"
+}

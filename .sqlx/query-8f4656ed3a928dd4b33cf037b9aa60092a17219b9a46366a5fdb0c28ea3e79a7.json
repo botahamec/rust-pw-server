@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE clients\n\t\t\t  SET secret_hash = NULL, secret_salt = NULL, secret_version = NULL\n\t\t\t  WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "8f4656ed3a928dd4b33cf037b9aa60092a17219b9a46366a5fdb0c28ea3e79a7"
+}

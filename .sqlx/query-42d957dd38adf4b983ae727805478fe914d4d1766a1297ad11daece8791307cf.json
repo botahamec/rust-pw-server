@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM login_attempts WHERE time < ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "42d957dd38adf4b983ae727805478fe914d4d1766a1297ad11daece8791307cf"
+}

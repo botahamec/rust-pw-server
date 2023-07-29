@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT type as `type: ClientType` FROM clients WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "type: ClientType",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 180
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "19270d592676012569585d7796cb407d2c331dfbc7ac4481e5e38bcee5b6fcde"
+}

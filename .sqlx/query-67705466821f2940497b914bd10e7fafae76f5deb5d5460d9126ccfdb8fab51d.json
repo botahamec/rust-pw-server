@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM access_tokens WHERE exp < ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "67705466821f2940497b914bd10e7fafae76f5deb5d5460d9126ccfdb8fab51d"
+}

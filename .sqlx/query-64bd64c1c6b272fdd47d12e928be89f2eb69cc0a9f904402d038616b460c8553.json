@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE refresh_tokens SET revoked_reason = ? WHERE jti = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "64bd64c1c6b272fdd47d12e928be89f2eb69cc0a9f904402d038616b460c8553"
+}

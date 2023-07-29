@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT EXISTS(\n\t\t\t  SELECT redirect_uri\n\t\t\t  FROM client_redirect_uris\n\t\t\t  WHERE client_id = ? AND redirect_uri = ?\n\t\t  ) as `e: bool`",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "e: bool",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "char_set": 63,
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2558b6cad04d6c8af7efabc0e95e669e1de0ce9e04f7de2be321db4cbfae9eb5"
+}

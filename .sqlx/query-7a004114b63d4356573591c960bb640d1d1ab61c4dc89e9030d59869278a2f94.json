@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM auth_codes WHERE jti = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "7a004114b63d4356573591c960bb640d1d1ab61c4dc89e9030d59869278a2f94"
+}

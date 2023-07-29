@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT alias FROM clients WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "alias",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dda087e364dd82216ea8e5d7266d63ab671382744eb350d446fe1025e2df12bb"
+}

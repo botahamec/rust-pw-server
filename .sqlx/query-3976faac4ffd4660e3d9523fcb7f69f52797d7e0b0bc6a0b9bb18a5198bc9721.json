@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM access_tokens WHERE auth_code = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "3976faac4ffd4660e3d9523fcb7f69f52797d7e0b0bc6a0b9bb18a5198bc9721"
+}

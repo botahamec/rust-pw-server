@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE clients SET allowed_scopes = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "7b6de4c923629669f449f91fe17679c8654a6ce9c1238b07dcec2cdb7fcdf18d"
+}

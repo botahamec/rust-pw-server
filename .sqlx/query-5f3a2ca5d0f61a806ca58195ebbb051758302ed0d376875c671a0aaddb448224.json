@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT default_scopes FROM clients WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "default_scopes",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB",
+          "char_set": 224,
+          "max_size": 67108860
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "5f3a2ca5d0f61a806ca58195ebbb051758302ed0d376875c671a0aaddb448224"
+}

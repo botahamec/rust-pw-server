@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO login_attempts (username, ip_address, time) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c8e6dd73b413bdca1e85ebade9ab42c63ee63bc48669acd38b3025c930f3312a"
+}

@@ -39,3 +39,14 @@ pub async fn failed_login_attempts_since<'c>(
 
 	Ok(count as usize)
 }
+
+pub async fn delete_old_login_attempts_before<'c>(
+	executor: impl Executor<'c, Database = MySql>,
+	time: DateTime<Utc>,
+) -> Result<(), RawUnexpected> {
+	query!("DELETE FROM login_attempts WHERE time < ?", time)
+		.execute(executor)
+		.await?;
+
+	Ok(())
+}

@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT trusted as `t: bool` FROM clients WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "t: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bdc64eeb392348ba396e29c2b53e77e8f84f0a654d043067a01a9bbf7407e7f8"
+}
