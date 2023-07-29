@@ -97,7 +97,6 @@ async fn main() -> Result<(), RawUnexpected> {
 			.service(api::users())
 			.service(api::clients())
 			.service(api::oauth())
-			.service(api::ops())
 	})
 	.shutdown_timeout(1)
 	.bind(("127.0.0.1", 8080))?

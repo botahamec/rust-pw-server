@@ -6,7 +6,7 @@ use sqlx::{Executor, MySql};
 
 use super::db;
 
-pub const MAX_ATTEMPTS_PER_HOUR: usize = 10;
+pub const MAX_ATTEMPTS_PER_HOUR: usize = 2;
 
 pub async fn brute_force_detected<'c>(
 	executor: impl Executor<'c, Database = MySql>,
